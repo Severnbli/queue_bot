@@ -1,0 +1,90 @@
+CREATE TABLE roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL
+);
+
+INSERT INTO roles (name, description)
+VALUES ('default', 'обычный пользователь'),
+       ('admin', 'администратор');
+
+CREATE TABLE groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    key TEXT NOT NULL UNIQUE,
+    time_info TEXT
+);
+
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    nick TEXT NOT NULL,
+    username TEXT,
+    role_name TEXT NOT NULL DEFAULT 'default',
+    is_news TEXT NOT NULL CHECK (is_news IN ('true', 'false')) DEFAULT 'true',
+    FOREIGN KEY (role_name) REFERENCES roles (name) ON UPDATE CASCADE
+);
+
+CREATE TABLE members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    position TEXT NOT NULL CHECK (position IN ('leader', 'depute', 'default')) DEFAULT 'default',
+    subgroup_id INTEGER NOT NULL CHECK (subgroup_id >= 0 AND subgroup_id <= 2) DEFAULT 0,
+    FOREIGN KEY (group_id) REFERENCES groups (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE bans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    banned_user_id INTEGER NOT NULL,
+    officer_user_id INTEGER NOT NULL,
+    group_id INTEGER NOT NULL,
+    reason TEXT,
+    FOREIGN KEY (banned_user_id) REFERENCES users (id) ON UPDATE CASCADE,
+    FOREIGN KEY (officer_user_id) REFERENCES users (id) ON UPDATE CASCADE,
+    FOREIGN KEY (group_id) REFERENCES groups (id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    is_checked TEXT NOT NULL CHECK (is_checked IN ('false', 'true')) DEFAULT 'false',
+    FOREIGN KEY (sender_id) REFERENCES users (id) ON UPDATE CASCADE
+);
+
+CREATE TABLE schedules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    subject TEXT NOT NULL,
+    lesson_type TEXT NOT NULL,
+    day_of_week INTEGER NOT NULL,
+    weeks_of_month TEXT NOT NULL,
+    subgroup INTEGER NOT NULL,
+    is_in_schedule TEXT NOT NULL CHECK (is_in_schedule IN ('true', 'false')) DEFAULT false,
+    FOREIGN KEY (group_id) REFERENCES groups (id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE queues_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    subject TEXT NOT NULL,
+    lesson_type TEXT NOT NULL,
+    subgroup INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('prerelease', 'release', 'obsolete')),
+    day_of_week INTEGER NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES groups (id)
+);
+
+CREATE TABLE trades (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    sender_place INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    receiver_place INTEGER NOT NULL,
+    queue_info_id INTEGER NOT NULL,
+    is_up_to_date TEXT NOT NULL CHECK(is_up_to_date IN ('false', 'true')) DEFAULT 'true',
+    FOREIGN KEY (sender_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (queue_info_id) REFERENCES queues_info (id) ON UPDATE CASCADE ON DELETE CASCADE
+);
