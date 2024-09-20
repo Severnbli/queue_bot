@@ -10,22 +10,36 @@ from status_codes import get_message_about_status_code
 
 
 async def timer():
-    time_to_prerelease = datetime.now().replace(hour=20, minute=5, second=0)
-    time_to_release = datetime.now().replace(hour=20, minute=10, second=0)
+    time_to_prerelease = datetime.now().replace(hour=19, minute=50, second=0)
+    time_to_release = datetime.now().replace(hour=20, minute=0, second=0)
     time_to_obsolete = datetime.now().replace(hour=22, minute=59, second=0)
+
+    prerelease_done = False
+    release_done = False
+    obsolete_done = False
+
     while True:
         now_time = datetime.now()
-        if time_to_prerelease <= now_time <= time_to_prerelease.replace(second=5):
+
+        if time_to_prerelease <= now_time <= time_to_prerelease.replace(second=5) and not prerelease_done:
             await prerelease_queues()
-            await asyncio.sleep(40)
-        elif time_to_release <= now_time <= time_to_release.replace(second=5):
+            prerelease_done = True
+            await asyncio.sleep(30)
+            prerelease_done = False
+
+        elif time_to_release <= now_time <= time_to_release.replace(second=5) and not release_done:
             await release_queues()
-            await asyncio.sleep(40)
-        elif time_to_obsolete <= now_time <= time_to_obsolete.replace(second=5):
+            release_done = True
+            await asyncio.sleep(30)
+            release_done = False
+
+        elif time_to_obsolete <= now_time <= time_to_obsolete.replace(second=5) and not obsolete_done:
             await obsolete_queues()
-            await asyncio.sleep(40)
+            obsolete_done = True
+            await asyncio.sleep(30)
+            obsolete_done = False
+
         await asyncio.sleep(5)
-    pass
 
 
 async def prerelease_queues():
