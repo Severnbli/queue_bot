@@ -379,6 +379,9 @@ async def get_games_keyboard() -> ReplyKeyboardMarkup:
             KeyboardButton(text='🤡 Анекдот')
         ],
         [
+            KeyboardButton(text='🏆 Таблицы рекордов')
+        ],
+        [
             KeyboardButton(text='◀️ В главное меню')
         ]
     ]
