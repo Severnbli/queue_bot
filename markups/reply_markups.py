@@ -65,6 +65,9 @@ async def get_main_keyboard(placeholder: str = 'Нажми кнопку меню
         [
             KeyboardButton(text='⚡️ Команды'),
             KeyboardButton(text='💬 Репорт')
+        ],
+        [
+            KeyboardButton(text='🎲 Развлечения')
         ]
     ]
     keyboard = ReplyKeyboardMarkup(
