@@ -805,6 +805,8 @@ async def tap_on_button_pls(message: Message) -> None:
                         '\n\nЕсли передумал, то /cancel.')
 
 
+@router.message(GeneralStatesGroup.captcha_game_setup)
+@router.message(GeneralStatesGroup.captcha_game_process)
 @router.message(GeneralStatesGroup.nick_input)
 @router.message(GeneralStatesGroup.captcha)
 @router.message(GeneralStatesGroup.report_input)
