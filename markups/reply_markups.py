@@ -370,3 +370,20 @@ async def get_yes_or_no_for_report_answering() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
+
+async def get_games_keyboard() -> ReplyKeyboardMarkup:
+    kb = [
+        [
+            KeyboardButton(text='🧩 Каптча'),
+            KeyboardButton(text='🤡 Анекдот')
+        ],
+        [
+            KeyboardButton(text='◀️ В главное меню')
+        ]
+    ]
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True
+    )
+    return keyboard
