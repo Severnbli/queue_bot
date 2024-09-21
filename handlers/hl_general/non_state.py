@@ -679,7 +679,7 @@ async def cmd_members(message: Message) -> None:
 async def cmd_games(message: Message) -> None:
     await message.answer(
         text='Так, посмотрим-с, во что я могу с тобой поиграть...',
-        # add reply_markup
+        reply_markup=await reply_markups.get_games_keyboard()
     )
 
 
