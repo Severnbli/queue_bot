@@ -695,6 +695,15 @@ async def cmd_captcha_game(message: Message, state: FSMContext) -> None:
     )
 
 
+@router.message(F.text.lower() == '🤡 анекдот')
+@router.message(Command('joke'))
+@decorators.user_exists_required
+async def cmd_joke(message: Message) -> None:
+    await message.answer(
+        text='Эта функциональность будет реализована в последующем.'
+    )
+
+
 @router.message(F.text)
 @decorators.user_exists_required
 async def unknown_message(message: Message) -> None:
