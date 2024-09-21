@@ -163,3 +163,16 @@ cython_debug/
 
 # Crucial for security file
 configs.py
+
+# Useless files
+.idea/.gitignore
+.idea/dataSources.xml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/queueBot_v2.0.iml
+.idea/sqldialects.xml
+.idea/vcs.xml
+database_queue_bot
+database_queue_bot.sqlite
+db/database_queue_bot
