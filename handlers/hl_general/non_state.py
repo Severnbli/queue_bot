@@ -683,6 +683,18 @@ async def cmd_games(message: Message) -> None:
     )
 
 
+@router.message(F.text.lower() == '🧩 каптча')
+@router.message(Command('captcha_game'))
+@decorators.user_exists_required
+async def cmd_captcha_game(message: Message, state: FSMContext) -> None:
+    await state.set_state(GeneralStatesGroup.captcha_game_setup)
+    await state.update_data(back_step='games')
+    await message.answer(
+        text='Выбери количество символов в капче. Отправь мне целое число.',
+        reply_markup=await reply_markups.get_cancel_keyboard()
+    )
+
+
 @router.message(F.text)
 @decorators.user_exists_required
 async def unknown_message(message: Message) -> None:
