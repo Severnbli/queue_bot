@@ -704,6 +704,15 @@ async def cmd_joke(message: Message) -> None:
     )
 
 
+@router.message(F.text.lower() == '🏆 Таблицы рекордов')
+@router.message(Command('records'))
+@decorators.user_exists_required
+async def cmd_records(message: Message) -> None:
+    await message.answer(
+        text='Эта функциональность будет реализована в последующем.'
+    )
+
+
 @router.message(F.text)
 @decorators.user_exists_required
 async def unknown_message(message: Message) -> None:
