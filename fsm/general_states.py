@@ -26,3 +26,5 @@ class GeneralStatesGroup(StatesGroup):
     report_checking = State()
     report_answer_input = State()
     report_answer_accepting = State()
+    captcha_game_setup = State()
+    captcha_game_process = State()
