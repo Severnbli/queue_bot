@@ -808,12 +808,48 @@ async def captcha_game_setup(message: Message, state: FSMContext) -> None:
         )
         return
     captcha_image, captcha_text = await get_image_captcha(setup_parameter)
-    await state.update_data(captcha_text=captcha_text, captcha_try=0)
+    await state.set_state(GeneralStatesGroup.captcha_game_process)
+    await state.update_data(setup_parameter=setup_parameter, captcha_text=captcha_text, captcha_try=0)
     await message.answer_photo(
         photo=captcha_image,
         caption='Попробуй отгадать каптчу!',
         reply_markup=await reply_markups.get_cancel_keyboard()
     )
+
+
+@router.message(GeneralStatesGroup.captcha_game_process, F.text)
+@decorators.user_exists_required
+async def captcha_game_process(message: Message, state: FSMContext) -> None:
+    user_data = await state.get_data()
+    captcha_text = user_data['captcha_text']
+    if message.text != captcha_text:
+        captcha_try = user_data['captcha_try']
+        captcha_try += 1
+        if captcha_try == 2:
+            setup_parameter = user_data['setup_parameter']
+            captcha_image, captcha_text = await get_image_captcha(setup_parameter)
+            await state.update_data(captcha_text=captcha_text, captcha_try=0)
+            await message.answer_photo(
+                photo=captcha_image,
+                caption='Ты исчерпал три попытки. Держи новую каптчу!',
+                reply_markup=await reply_markups.get_cancel_keyboard()
+            )
+            return
+        await state.update_data(captcha_try=captcha_try)
+        await message.answer(
+            text=f'У тебя ещё {3 - captcha_try} попытки. У тебя получится!'
+        )
+        return
+    else:
+        setup_parameter = user_data['setup_parameter']
+        captcha_image, captcha_text = await get_image_captcha(setup_parameter)
+        await state.update_data(captcha_text=captcha_text, captcha_try=0)
+        await message.answer_photo(
+            photo=captcha_image,
+            caption='Ты разгадал каптчу! Держи новую!',
+            reply_markup=await reply_markups.get_cancel_keyboard()
+        )
+        return
 
 
 @router.message(GeneralStatesGroup.nick_accepting)
