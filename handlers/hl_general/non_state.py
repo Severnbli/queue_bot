@@ -673,6 +673,16 @@ async def cmd_members(message: Message) -> None:
     return
 
 
+@router.message(F.text.lower() == '🎲 развлечения')
+@router.message(Command('games'))
+@decorators.user_exists_required
+async def cmd_games(message: Message) -> None:
+    await message.answer(
+        text='Так, посмотрим-с, во что я могу с тобой поиграть...',
+        # add reply_markup
+    )
+
+
 @router.message(F.text)
 @decorators.user_exists_required
 async def unknown_message(message: Message) -> None:
