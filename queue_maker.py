@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, time, timedelta
+from datetime import datetime
 
 from general_usage_funcs import notify_user_
 import db.queues_info_table_usage as queues_info_db
@@ -14,30 +14,20 @@ async def timer():
     time_to_release = datetime.now().replace(hour=20, minute=0, second=0)
     time_to_obsolete = datetime.now().replace(hour=22, minute=59, second=0)
 
-    prerelease_done = False
-    release_done = False
-    obsolete_done = False
-
     while True:
         now_time = datetime.now()
 
-        if time_to_prerelease <= now_time <= time_to_prerelease.replace(second=5) and not prerelease_done:
+        if time_to_prerelease <= now_time <= time_to_prerelease.replace(second=5):
             await prerelease_queues()
-            prerelease_done = True
             await asyncio.sleep(30)
-            prerelease_done = False
 
-        elif time_to_release <= now_time <= time_to_release.replace(second=5) and not release_done:
+        elif time_to_release <= now_time <= time_to_release.replace(second=5):
             await release_queues()
-            release_done = True
             await asyncio.sleep(30)
-            release_done = False
 
-        elif time_to_obsolete <= now_time <= time_to_obsolete.replace(second=5) and not obsolete_done:
+        elif time_to_obsolete <= now_time <= time_to_obsolete.replace(second=5):
             await obsolete_queues()
-            obsolete_done = True
             await asyncio.sleep(30)
-            obsolete_done = False
 
         await asyncio.sleep(5)
 
