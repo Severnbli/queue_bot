@@ -117,9 +117,11 @@ async def get_info_about_user_participation_in_queues(user_id: int):
 
 
 async def simple_get_queues_info_ids_which_user_participate(user_id: int):
-    await cur.execute('SELECT queues_info_id '
-                      'FROM queues '
-                      'WHERE user_id = ?', (user_id,))
+    await cur.execute('SELECT q.queues_info_id '
+                      'FROM queues AS q '
+                      'INNER JOIN queues_info AS q_i ON q.queues_info_id = q_i.id '
+                      'WHERE q.user_id = ? '
+                      'AND q_i.status = ?', (user_id, 'release'))
     rows = await cur.fetchall()
     if rows is None:
         return sc.DB_ERROR, None
