@@ -23,8 +23,8 @@ async def main():
 
 async def parse_processes():
     async with asyncio.TaskGroup() as tg:
-        bot_task = tg.create_task(main())
-        timer_task = asyncio.create_task(timer())
+        bot_task = tg.create_task(await main())
+        timer_task = tg.create_task(await timer())
         logging.info(f"Async tasks have completed now: {bot_task.result()}, {timer_task.result()}")
 
 
