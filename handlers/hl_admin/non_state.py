@@ -39,3 +39,12 @@ async def cmd_areport(message: Message, state: FSMContext):
         text='Выбери репорт для формирования ответа.',
         reply_markup=markups[now_page]
     )
+
+
+@router.message(Command('say'))
+async def cmd_say(message: Message, state: FSMContext):
+    await state.set_state(GeneralStatesGroup.say_input)
+    await message.answer(
+        text='Отправь сообщение, которое хочешь разослать всем пользователям.',
+        reply_markup=await reply_markups.get_cancel_keyboard()
+    )
