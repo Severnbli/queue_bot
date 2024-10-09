@@ -704,7 +704,7 @@ async def cmd_joke(message: Message) -> None:
     )
 
 
-@router.message(F.text.lower() == '🏆 Таблицы рекордов')
+@router.message(F.text.lower() == '🏆 таблицы рекордов')
 @router.message(Command('records'))
 @decorators.user_exists_required
 async def cmd_records(message: Message) -> None:
