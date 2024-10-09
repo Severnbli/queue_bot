@@ -68,7 +68,7 @@ async def release_queues():
 
 
 async def obsolete_queues():
-    status_code, info_about_users_to_notify = await queues_info_db.release_queues()
+    status_code = await queues_info_db.obsolete_queues_()
     if status_code != sc.OPERATION_SUCCESS:
         await notify_admins_(
             text='Obsolete state mistake: '
