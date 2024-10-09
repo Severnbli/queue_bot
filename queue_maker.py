@@ -10,12 +10,11 @@ from status_codes import get_message_about_status_code
 
 
 async def timer():
-    time_to_prerelease = datetime.now().replace(hour=19, minute=50, second=0)
-    time_to_release = datetime.now().replace(hour=20, minute=0, second=0)
-    time_to_obsolete = datetime.now().replace(hour=22, minute=59, second=0)
-
     while True:
         now_time = datetime.now()
+        time_to_prerelease = datetime.now().replace(hour=19, minute=50, second=0)
+        time_to_release = datetime.now().replace(hour=20, minute=0, second=0)
+        time_to_obsolete = datetime.now().replace(hour=22, minute=59, second=0)
 
         if time_to_prerelease <= now_time <= time_to_prerelease.replace(second=5):
             await prerelease_queues()
