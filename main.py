@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 from aiogram import Bot, Dispatcher
 
 from fsm import general_states
@@ -21,11 +22,14 @@ async def main():
 
 
 async def parse_processes():
-    await asyncio.gather(main(), timer())
+    async with asyncio.TaskGroup() as tg:
+        bot_task = tg.create_task(main())
+        timer_task = asyncio.create_task(timer())
+        logging.info(f"Async tasks have completed now: {bot_task.result()}, {timer_task.result()}")
 
 
 if __name__ == '__main__':
     try:
         asyncio.run(parse_processes())
     except KeyboardInterrupt:
-        print('Interrupted')
+        logging.error('Interrupted')
