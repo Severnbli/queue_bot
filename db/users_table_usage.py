@@ -126,6 +126,16 @@ async def notify_admins_(text: str) -> None:
         await notify_user_(admin_id, text)
 
 
+async def get_all_ids_() -> tuple:
+    await cur.execute('SELECT id FROM users')
+    rows = await cur.fetchall()
+    ids = []
+    if rows is not None:
+        for row in rows:
+           ids.append(row[0])
+    return tuple(ids)
+
+
 async def turn_on_off_subscription_(user_id: int):
     if not await is_user_exist_(user_id):
         return sc.USER_NOT_EXIST
