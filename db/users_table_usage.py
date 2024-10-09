@@ -136,6 +136,14 @@ async def get_all_ids_() -> tuple:
     return tuple(ids)
 
 
+async def notify_all_(text: str) -> int:
+    ids = await get_all_ids_()
+    quantity_of_notified_users: int = 0
+    for user_id in ids:
+        if await notify_user_(user_id, text) == sc.USER_NOTIFY_SUCCESSFULLY:
+            quantity_of_notified_users += 1
+    return quantity_of_notified_users
+
 async def turn_on_off_subscription_(user_id: int):
     if not await is_user_exist_(user_id):
         return sc.USER_NOT_EXIST
