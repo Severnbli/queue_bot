@@ -825,7 +825,7 @@ async def captcha_game_process(message: Message, state: FSMContext) -> None:
     if message.text != captcha_text:
         captcha_try = user_data['captcha_try']
         captcha_try += 1
-        if captcha_try == 2:
+        if captcha_try == 3:
             setup_parameter = user_data['setup_parameter']
             captcha_image, captcha_text = await get_image_captcha(setup_parameter)
             await state.update_data(captcha_text=captcha_text, captcha_try=0)
