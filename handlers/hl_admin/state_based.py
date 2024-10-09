@@ -198,3 +198,28 @@ async def say_input(message: Message, state: FSMContext):
         parse_mode='HTML',
         reply_markup=await reply_markups.get_yes_or_no_keyboard()
     )
+
+
+@router.message(GeneralStatesGroup.say_accepting)
+async def say_accepting(message: Message, state: FSMContext):
+    if message.text.lower() == 'да':
+        user_data = await state.get_data()
+        say_text = user_data['say_text']
+        await state.clear()
+
+        quantity_of_notified = await usersdb.notify_all_(say_text)
+        await message.answer(
+            text=f'Количество пользователей, получивших уведомление: <b>{quantity_of_notified}</b>.',
+            parse_mode='HTML',
+            reply_markup=await reply_markups.get_main_keyboard()
+        )
+    elif message.text.lower() == 'нет':
+        await state.set_state(GeneralStatesGroup.say_input)
+
+        await message.answer(
+            text='Заново введи текст для рассылки всем пользователям.'
+        )
+    else:
+        await message.answer(
+            text='Я хз, что ты написал.\n\nПопробуй хомяка, то есть кнопки, потапать.'
+        )
