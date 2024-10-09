@@ -217,7 +217,8 @@ async def say_accepting(message: Message, state: FSMContext):
         await state.set_state(GeneralStatesGroup.say_input)
 
         await message.answer(
-            text='Заново введи текст для рассылки всем пользователям.'
+            text='Заново введи текст для рассылки всем пользователям.',
+            reply_markup=await reply_markups.get_cancel_keyboard()
         )
     else:
         await message.answer(
