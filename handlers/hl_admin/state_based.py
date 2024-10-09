@@ -185,3 +185,15 @@ async def report_checking(message: Message, state: FSMContext):
         await message.answer(
             text=f'Непредвиденный статус-код: {await get_message_about_status_code(status_code)}.',
         )
+
+
+@router.message(GeneralStatesGroup.say_input)
+async def say_input(message: Message, state: FSMContext):
+    await state.set_state(GeneralStatesGroup.say_accepting)
+    await state.update_data(say_text=message.text)
+
+    await message.answer(
+        text=f'<b>Следующая информация будет разослана всем пользователям</b>\n\n{message.text}\n\n<b>Отправляем?</b>',
+        parse_mode='HTML',
+        reply_markup=await reply_markups.get_yes_or_no_keyboard()
+    )
