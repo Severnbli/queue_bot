@@ -22,18 +22,21 @@ async def prerelease_queues_from_active_schedules():
         subgroup = schedule[3]
         if subgroup is None:
             return sc.DB_VALUE_ERROR, None
-        info_to_notify.append((group_id, subgroup, subject, lesson_type))
+        day_of_week = schedule[4]
+        if day_of_week is None:
+            return sc.DB_VALUE_ERROR, None
+        info_to_notify.append((group_id, subgroup, subject, lesson_type, get_day_by_num(day_of_week)))
         await cur.execute('INSERT INTO queues_info '
                           '(group_id, subject, lesson_type, subgroup, status, day_of_week) '
                           'VALUES (?, ?, ?, ?, ?, ?)',
-                          (group_id, subject, lesson_type, subgroup, 'prerelease', await get_next_day_of_week()))
+                          (group_id, subject, lesson_type, subgroup, 'prerelease', day_of_week))
         if not await try_commit():
             return sc.DB_ERROR, None
     return sc.OPERATION_SUCCESS, info_to_notify
 
 
 async def release_queues():
-    await cur.execute('SELECT group_id, subgroup, subject, lesson_type '
+    await cur.execute('SELECT group_id, subgroup, subject, lesson_type, day_of_week '
                       "FROM queues_info WHERE status = 'prerelease'")
     info_about_users = await cur.fetchall()
     if info_about_users is None:

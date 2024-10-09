@@ -42,7 +42,7 @@ async def get_active_schedules():
     next_dow = await get_next_day_of_week()
     next_wom = await get_next_day_week_of_month()
     formated_wom = f'%{next_wom}%'
-    await cur.execute("SELECT group_id, subject, lesson_type, subgroup "
+    await cur.execute("SELECT group_id, subject, lesson_type, subgroup, day_of_week "
                       "FROM schedules "
                       "WHERE is_in_schedule = 'true' "
                       "AND day_of_week = ? "

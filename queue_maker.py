@@ -42,10 +42,12 @@ async def prerelease_queues():
     for info in info_about_users_to_notify:
         subject = info[2]
         lesson_type = info[3]
+        day_of_week = info[4]
         await notify_members_about_queues(
             group_id=info[0],
             subgroup_id=info[1],
-            text=f'[АНОНС] Новая очередь в ожидании (регистрация откроется в 21:00): {subject} [{lesson_type}]'
+            text=f'[АНОНС] Новая очередь в ожидании (регистрация откроется в 21:00): {subject} [{lesson_type}] - '
+                 f'{day_of_week}'
         )
 
 
@@ -60,10 +62,11 @@ async def release_queues():
     for info in info_about_users_to_notify:
         subject = info[2]
         lesson_type = info[3]
+        day_of_week = info[4]
         await notify_members_about_queues(
             group_id=info[0],
             subgroup_id=info[1],
-            text=f'[РЕЛИЗ] Открыта регистрация на очередь: {subject} [{lesson_type}]'
+            text=f'[РЕЛИЗ] Открыта регистрация на очередь: {subject} [{lesson_type}] - {day_of_week}'
         )
 
 
