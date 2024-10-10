@@ -28,7 +28,7 @@ async def timer():
             await obsolete_queues()
             await asyncio.sleep(30)
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
 
 
 async def prerelease_queues():
