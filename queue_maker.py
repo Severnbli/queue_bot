@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import time, datetime, timedelta
 
 from general_usage_funcs import notify_user_
 import db.queues_info_table_usage as queues_info_db
@@ -10,23 +10,40 @@ from status_codes import get_message_about_status_code
 
 
 async def timer():
+    time_to_prerelease = '19:50:0'
+    time_to_release = '20:0:0'
+    time_to_obsolete = '22:0:0'
+    time_range: int = 5
+
+    dt = datetime.strptime(time_to_prerelease, '%H:%M:%S')
+    time_to_prerelease = dt.time()
+    time_to_prerelease_range = (dt + timedelta(seconds=time_range)).time()
+
+    dt = datetime.strptime(time_to_release, '%H:%M:%S')
+    time_to_release = dt.time()
+    time_to_release_range = (dt + timedelta(seconds=time_range)).time()
+
+    dt = datetime.strptime(time_to_obsolete, '%H:%M:%S')
+    time_to_obsolete = dt.time()
+    time_to_obsolete_range = (dt + timedelta(seconds=time_range)).time()
+
     while True:
-        now_time = datetime.now()
-        time_to_prerelease = datetime.now().replace(hour=19, minute=50, second=0)
-        time_to_release = datetime.now().replace(hour=20, minute=0, second=0)
-        time_to_obsolete = datetime.now().replace(hour=22, minute=59, second=0)
+        now = datetime.now()
+        now_time = time(now.hour, now.minute, now.second)
 
-        if time_to_prerelease <= now_time <= time_to_prerelease.replace(second=5):
-            await prerelease_queues()
-            await asyncio.sleep(30)
+        print(now_time, time_to_prerelease, time_to_release, time_to_obsolete)
 
-        elif time_to_release <= now_time <= time_to_release.replace(second=5):
+        if time_to_prerelease <= now_time <= time_to_prerelease_range:
+            await prerelease_queues(time_to_release)
+            await asyncio.sleep(time_range * 2)
+
+        elif time_to_release <= now_time <= time_to_release_range:
             await release_queues()
-            await asyncio.sleep(30)
+            await asyncio.sleep(time_range * 2)
 
-        elif time_to_obsolete <= now_time <= time_to_obsolete.replace(second=5):
+        elif time_to_obsolete <= now_time <= time_to_obsolete_range:
             await obsolete_queues()
-            await asyncio.sleep(30)
+            await asyncio.sleep(time_range * 2)
 
         await asyncio.sleep(1)
 
