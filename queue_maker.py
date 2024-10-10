@@ -48,7 +48,7 @@ async def timer():
         await asyncio.sleep(1)
 
 
-async def prerelease_queues():
+async def prerelease_queues(time_to_release: time):
     status_code, info_about_users_to_notify = await queues_info_db.prerelease_queues_from_active_schedules()
     if status_code != sc.OPERATION_SUCCESS:
         await notify_admins_(
@@ -63,8 +63,8 @@ async def prerelease_queues():
         await notify_members_about_queues(
             group_id=info[0],
             subgroup_id=info[1],
-            text=f'[АНОНС] Новая очередь в ожидании (регистрация откроется в 21:00): {subject} [{lesson_type}] - '
-                 f'{day_of_week}'
+            text=f'[АНОНС] Новая очередь в ожидании (регистрация откроется в {time_to_release}): {subject} '
+                 f'[{lesson_type}] - {day_of_week}'
         )
 
 
