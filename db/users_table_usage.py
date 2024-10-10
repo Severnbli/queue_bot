@@ -144,6 +144,8 @@ async def notify_all_(text: str) -> int:
     for user_id in ids:
         if await notify_user_(user_id, text) == sc.USER_NOTIFY_SUCCESSFULLY:
             quantity_of_notified_users += 1
+            if quantity_of_notified_users % 10 == 0:
+                await asyncio.sleep(1)
     return quantity_of_notified_users
 
 async def turn_on_off_subscription_(user_id: int):
