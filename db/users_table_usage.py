@@ -5,6 +5,8 @@ import db.groups_table_usage as groupsdb
 import db.members_table_usage as membersdb
 from general_usage_funcs import get_subgroup_name, notify_user_
 
+import asyncio
+
 async def is_user_exist_(user_id: int) -> bool:
     await cur.execute('''SELECT COUNT(*) FROM users WHERE id = ?''', (user_id,))
     row = await cur.fetchone()
