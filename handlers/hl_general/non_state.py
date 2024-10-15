@@ -680,7 +680,7 @@ async def cmd_captcha_game(message: Message, state: FSMContext) -> None:
     await state.set_state(GeneralStatesGroup.captcha_game_setup)
     await state.update_data(back_step='games')
     await message.answer(
-        text='Выбери количество символов в капче. Отправь мне целое число.',
+        text='Выбери количество символов в каптче. Отправь мне целое число.',
         reply_markup=await reply_markups.get_cancel_keyboard()
     )
 
