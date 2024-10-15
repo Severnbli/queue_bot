@@ -12,7 +12,7 @@ from queue_maker import timer
 
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+
     bot = Bot(token=token)
     dp = Dispatcher(storage=general_states.storage)
 
@@ -22,13 +22,22 @@ async def main():
 
 
 async def parse_processes():
-    async with asyncio.TaskGroup() as tg:
-        bot_task = tg.create_task(await main())
-        timer_task = tg.create_task(await timer())
+    try:
+        async with asyncio.TaskGroup() as tg:
+            bot_task = tg.create_task(main())
+            timer_task = tg.create_task(timer())
+
+    except* Exception as e:
+        logging.error(f"An error occurred: {e}")
+
+    if bot_task.done() and timer_task.done():
         logging.info(f"Async tasks have completed now: {bot_task.result()}, {timer_task.result()}")
+    else:
+        logging.warning("One or more tasks did not complete successfully.")
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     try:
         asyncio.run(parse_processes())
     except KeyboardInterrupt:
