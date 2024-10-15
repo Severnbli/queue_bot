@@ -170,7 +170,8 @@ async def cmd_profile(message: Message) -> None:
         output_message = f'<b>Информация о тебе</b>\n\n{info_about_user}'
         await message.answer(
             output_message,
-            parse_mode='HTML'
+            parse_mode='HTML',
+            disable_web_page_preview=True
         )
     else:
         output_message = f'Я не смог найти информацию о тебе: {await get_message_about_status_code(status_code)}.'
