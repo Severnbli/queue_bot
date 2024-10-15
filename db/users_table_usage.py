@@ -46,9 +46,13 @@ async def get_all_nicks():
 
 
 async def reg_user_(user_id: int, nick: str, username: str):
+    if username is not None:
+        username = f'https://t.me/{username}'
+
     if await is_user_exist_(user_id):
         return sc.USER_EXIST
     await cur.execute('''INSERT INTO users (id, nick, username) VALUES (?, ?, ?)''', (user_id, nick, username))
+
     if not await try_commit():
         return sc.DB_ERROR
     return sc.OPERATION_SUCCESS
@@ -104,6 +108,9 @@ async def get_user_info(user_id: int):
 
 
 async def update_link_(user_id: int, username: str):
+    if username is not None:
+        username = f'https://t.me/{username}'
+
     if not await is_user_exist_(user_id):
         return sc.USER_NOT_EXIST
     await cur.execute('''UPDATE users SET username = ? WHERE id = ?''', (username, user_id))
