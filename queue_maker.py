@@ -85,6 +85,8 @@ async def timer():
     time_to_release = dt.time()
     time_to_release_range = (dt + timedelta(seconds=time_range)).time()
 
+    notify_release_time = (dt + timedelta(hours=1)).time()
+
     dt = datetime.strptime(time_to_obsolete, '%H:%M:%S')
     time_to_obsolete = dt.time()
     time_to_obsolete_range = (dt + timedelta(seconds=time_range)).time()
@@ -93,10 +95,8 @@ async def timer():
         now = datetime.now()
         now_time = time(now.hour, now.minute, now.second)
 
-        print(now_time, time_to_prerelease, time_to_release, time_to_obsolete)
-
         if time_to_prerelease <= now_time <= time_to_prerelease_range:
-            await prerelease_queues(time_to_release)
+            await prerelease_queues(notify_release_time)
             await asyncio.sleep(time_range * 2)
 
         elif time_to_release <= now_time <= time_to_release_range:
