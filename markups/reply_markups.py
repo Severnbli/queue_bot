@@ -65,9 +65,6 @@ async def get_main_keyboard(placeholder: str = 'Нажми кнопку меню
         [
             KeyboardButton(text='⚡️ Команды'),
             KeyboardButton(text='💬 Репорт')
-        ],
-        [
-            KeyboardButton(text='🎲 Развлечения')
         ]
     ]
     keyboard = ReplyKeyboardMarkup(
@@ -363,26 +360,6 @@ async def get_yes_or_no_for_report_answering() -> ReplyKeyboardMarkup:
         ],
         [
             KeyboardButton(text='⛔️ Выход / отмена')
-        ]
-    ]
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=kb,
-        resize_keyboard=True
-    )
-    return keyboard
-
-
-async def get_games_keyboard() -> ReplyKeyboardMarkup:
-    kb = [
-        [
-            KeyboardButton(text='🧩 Каптча'),
-            KeyboardButton(text='🤡 Анекдот')
-        ],
-        [
-            KeyboardButton(text='🏆 Таблицы рекордов')
-        ],
-        [
-            KeyboardButton(text='◀️ В главное меню')
         ]
     ]
     keyboard = ReplyKeyboardMarkup(
