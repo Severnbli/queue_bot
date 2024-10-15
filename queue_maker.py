@@ -74,7 +74,7 @@ async def notify_members_about_queues(group_id: int, subgroup_id, text: str):
 async def timer():
     time_to_prerelease = '19:50:0'
     time_to_release = '20:0:0'
-    time_to_obsolete = '0:40:0'
+    time_to_obsolete = '22:0:0'
     time_range: int = 5
 
     dt = datetime.strptime(time_to_prerelease, '%H:%M:%S')
