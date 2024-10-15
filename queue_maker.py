@@ -1,7 +1,7 @@
 import asyncio
 from datetime import time, datetime, timedelta
 
-from general_usage_funcs import notify_user_
+from general_usage_funcs import notify_user_, get_day_by_num
 import db.queues_info_table_usage as queues_info_db
 from db.members_table_usage import get_members_by_group_id_and_subgroup_id, simple_get_members_by_group_id
 from db.users_table_usage import notify_admins_
@@ -40,7 +40,7 @@ async def release_queues():
     for info in info_about_users_to_notify:
         subject = info[2]
         lesson_type = info[3]
-        day_of_week = info[4]
+        day_of_week = await get_day_by_num(info[4])
         await notify_members_about_queues(
             group_id=info[0],
             subgroup_id=info[1],
