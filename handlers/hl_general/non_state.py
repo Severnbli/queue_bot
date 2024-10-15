@@ -685,6 +685,14 @@ async def cmd_captcha_game(message: Message, state: FSMContext) -> None:
     )
 
 
+@router.message(F.text.lower() == '🔄 а сейчас работает?')
+async def yes_it_works(message: Message) -> None:
+    await message.answer(
+        text='Да! Я снова работаю!',
+        reply_markup=await reply_markups.get_main_keyboard()
+    )
+
+
 @router.message(F.text)
 @decorators.user_exists_required
 async def unknown_message(message: Message) -> None:
