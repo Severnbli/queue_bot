@@ -101,7 +101,7 @@ async def get_user_info(user_id: int):
         is_news = 'присутствует'
     ref = 'отсутствует'
     if row[2] is not None:
-        ref = f'@{row[2]}'
+        ref = f'{row[2]}'
     info_about_user = (f'🔹 <b>Ник</b>: {row[1]}\n🔹 <b>Ссылка</b>: {ref}\n🔹 <b>Роль</b>: {role_description}'
                        f'\n🔹 <b>Группа</b>: {group_name}\n🔹 <b>Подписка на обновления очередей</b>: {is_news}')
     return sc.OPERATION_SUCCESS, info_about_user
