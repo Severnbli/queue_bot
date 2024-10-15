@@ -25,7 +25,7 @@ async def prerelease_queues_from_active_schedules():
         day_of_week = schedule[4]
         if day_of_week is None:
             return sc.DB_VALUE_ERROR, None
-        info_to_notify.append((group_id, subgroup, subject, lesson_type, get_day_by_num(day_of_week)))
+        info_to_notify.append((group_id, subgroup, subject, lesson_type, await get_day_by_num(day_of_week)))
         await cur.execute('INSERT INTO queues_info '
                           '(group_id, subject, lesson_type, subgroup, status, day_of_week) '
                           'VALUES (?, ?, ?, ?, ?, ?)',
