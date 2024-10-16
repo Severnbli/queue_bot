@@ -367,3 +367,23 @@ async def get_yes_or_no_for_report_answering() -> ReplyKeyboardMarkup:
         resize_keyboard=True
     )
     return keyboard
+
+
+async def get_edit_note_keyboard() -> ReplyKeyboardMarkup:
+    kb = [
+        [
+            KeyboardButton(text='✏️ Редактировать / создать заметку')
+        ],
+        [
+            KeyboardButton(text='❌ Удалить заметку')
+        ],
+        [
+            KeyboardButton(text='◀️ К простру регистраций')
+        ]
+    ]
+
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True
+    )
+    return keyboard
