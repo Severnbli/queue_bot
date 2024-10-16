@@ -58,7 +58,9 @@ async def obsolete_queues():
         )
 
 
-async def notify_members_about_queues(group_id: int, subgroup_id, text: str):
+async def notify_members_about_queues(group_id: int, subgroup_id, text: str, delay: int = 0):
+    await asyncio.sleep(delay)
+
     if subgroup_id == 0:
         members_ids = await simple_get_members_by_group_id(group_id=group_id)
         text += ' - вся группа'
