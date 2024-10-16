@@ -22,6 +22,7 @@ class GeneralStatesGroup(StatesGroup):
     group_source_accepting = State()
     queue_choose = State()
     queues_viewing = State()
+    queue_edit_note = State()
     trade_info_input = State()
     report_checking = State()
     report_answer_input = State()
