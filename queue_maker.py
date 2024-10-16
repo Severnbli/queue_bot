@@ -13,8 +13,7 @@ async def prerelease_queues(time_to_release: time):
     status_code, info_about_users_to_notify = await queues_info_db.prerelease_queues_from_active_schedules()
     if status_code != sc.OPERATION_SUCCESS:
         await notify_admins_(
-            text='Prerelease state mistake: '
-                 f'{get_message_about_status_code(status_code)}'
+            text=f'Prerelease state mistake: {get_message_about_status_code(status_code)}'
         )
         return
 
@@ -47,8 +46,7 @@ async def prerelease_queues(time_to_release: time):
                 )
     except Exception as e:
         await notify_admins_(
-            text='Prerelease state mistake: '
-                 f'{e}'
+            text=f'Prerelease state mistake: {e}'
         )
 
 
@@ -56,8 +54,7 @@ async def release_queues():
     status_code, info_about_users_to_notify = await queues_info_db.release_queues()
     if status_code not in [sc.OPERATION_SUCCESS, sc.NO_QUEUES_IN_PRERELEASE]:
         await notify_admins_(
-            text='Release state mistake: '
-                 f'{get_message_about_status_code(status_code)}'
+            text=f'Release state mistake: {get_message_about_status_code(status_code)}'
         )
         return
     try:
@@ -75,8 +72,7 @@ async def release_queues():
                 )
     except Exception as e:
         await notify_admins_(
-            text='Release state mistake: '
-                 f'{e}'
+            text=f'Release state mistake: {e}'
         )
 
 
