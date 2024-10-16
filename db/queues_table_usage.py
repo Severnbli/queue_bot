@@ -107,9 +107,9 @@ async def get_info_about_user_participation_in_queues(user_id: int):
         for row in rows:
             info_about_user_participation += f'🔹 <b>{row[0]}</b> [<b>{row[1]}</b>] - '
             if row[2] == 0:
-                info_about_user_participation += '<b>вся</b> группа'
+                info_about_user_participation += '<b>вся группа</b>'
             else:
-                info_about_user_participation += f'<b>{row[2]}</b> подгруппа'
+                info_about_user_participation += f'<b>{row[2]} подгруппа</b>'
             info_about_user_participation += f' - <b>{row[4]} место</b> - <b>{await get_day_by_num(row[3])}</b>\n'
     else:
         info_about_user_participation = 'Ты не участвуешь ни в одной очереди.'
