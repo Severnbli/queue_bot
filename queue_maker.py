@@ -19,14 +19,25 @@ async def prerelease_queues(time_to_release: time):
         )
         return
     for info in info_about_users_to_notify:
+        group_id = info[0]
+        subgroup_id = info[1]
         subject = info[2]
         lesson_type = info[3]
         day_of_week = info[4]
+        text_header = '[АНОНС]'
+        text_ender = 'в ожидании (регистрация откроется в {time_to_release}): {subject} [{lesson_type}] - {day_of_week}'
+
         await notify_members_about_queues(
-            group_id=info[0],
-            subgroup_id=info[1],
-            text=f'[АНОНС] Новая очередь в ожидании (регистрация откроется в {time_to_release}): {subject} '
-                 f'[{lesson_type}] - {day_of_week}'
+            group_id=group_id,
+            subgroup_id=subgroup_id,
+            text=f'{text_header} Новая очередь {text_ender}'
+        )
+
+        await notify_members_about_queues(
+            group_id=group_id,
+            subgroup_id=subgroup_id,
+            text=f'{text_header} Очередь {text_ender}',
+            delay=3000
         )
 
 
