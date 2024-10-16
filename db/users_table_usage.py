@@ -49,7 +49,7 @@ async def notify_users_if_news_turned_on_(users_ids: tuple, text: str):
         if status_code == sc.USER_NOTIFY_SUCCESSFULLY and is_news:
             users_ids_to_notify.append(user_id)
 
-    return notify_users_(tuple(users_ids_to_notify), text)
+    return await notify_users_(tuple(users_ids_to_notify), text)
 
 
 async def is_user_exist_(user_id: int) -> bool:
