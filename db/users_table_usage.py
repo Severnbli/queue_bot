@@ -21,7 +21,7 @@ async def notify_user_(user_id: int, text: str):
 
 async def notify_user_if_news_turned_on_(user_id: int, text: str):
     status_code, is_news = await simple_get_status_of_news(user_id)
-    if status_code == sc.USER_NOTIFY_SUCCESSFULLY and is_news:
+    if status_code == sc.OPERATION_SUCCESS and is_news:
         return await notify_user_(user_id, text)
     return status_code
 
@@ -46,7 +46,7 @@ async def notify_users_if_news_turned_on_(users_ids: tuple, text: str):
 
     for user_id in users_ids:
         status_code, is_news = await simple_get_status_of_news(user_id)
-        if status_code == sc.USER_NOTIFY_SUCCESSFULLY and is_news:
+        if status_code == sc.OPERATION_SUCCESS and is_news:
             users_ids_to_notify.append(user_id)
 
     return await notify_users_(tuple(users_ids_to_notify), text)
