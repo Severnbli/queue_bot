@@ -378,7 +378,7 @@ async def get_edit_note_keyboard() -> ReplyKeyboardMarkup:
             KeyboardButton(text='❌ Удалить заметку')
         ],
         [
-            KeyboardButton(text='◀️ К простру регистраций')
+            KeyboardButton(text='◀️ К просмотру регистраций')
         ]
     ]
 
