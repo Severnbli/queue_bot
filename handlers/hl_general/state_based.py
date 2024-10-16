@@ -698,6 +698,32 @@ async def queue_choose(message: Message, state: FSMContext) -> None:
         )
 
 
+async def send_message_about_queue(message: Message, state: FSMContext, queue_info_id: int) -> None:
+    status_code, header = await queues_info_db.get_information_to_make_header(queues_info_id=queue_info_id)
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+        await message.answer(
+            text='При подгрузке информации об очереди произошла ошибка: '
+                 f'{await get_message_about_status_code(status_code)}.',
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
+        )
+        return
+    status_code, participants = await queuesdb.get_information_users_participate_queue(queue_info_id=queue_info_id)
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+        await message.answer(
+            text='При подгрузке информации об очереди произошла ошибка: '
+                 f'{await get_message_about_status_code(status_code)}.',
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
+        )
+        return
+    await message.answer(
+        text=f'{header}\n\n{participants}',
+        parse_mode='HTML',
+        disable_web_page_preview=True
+    )
+
+
 @router.message(GeneralStatesGroup.queues_viewing, F.text)
 @decorators.user_exists_required
 @decorators.user_in_group_required
@@ -706,6 +732,7 @@ async def queues_viewing(message: Message, state: FSMContext) -> None:
     now_page = user_data['now_page']
     markups = user_data['markups']
     quantity_of_pages = user_data['quantity_of_pages']
+
     status_code = await make_easy_navigation(
         message=message,
         now_page=now_page,
@@ -713,43 +740,114 @@ async def queues_viewing(message: Message, state: FSMContext) -> None:
         markups=markups,
         state=state
     )
+
     if status_code == sc.NOTHING_NEEDED_TO_DO:
         return
     elif status_code == sc.NEEDED_TEXT_PROCESSING:
         info_in_buttons = user_data['info_in_buttons']
+
         if message.text not in info_in_buttons:
             await message.answer(
                 text='Я хз, что ты написал.\n\nПопробуй хомяка, то есть кнопки, потапать.'
             )
             return
-        split_message = message.text.split(' ')
-        queue_info_id = int(split_message[-1])
-        status_code, header = await queues_info_db.get_information_to_make_header(queues_info_id=queue_info_id)
-        if status_code != sc.OPERATION_SUCCESS:
-            await state.clear()
+
+        if message.text == '📦 Информация о всех':
+            for info_in_button in info_in_buttons[1:]:
+                queues_info_id = info_in_button.split(' ')
+                queues_info_id = int(queues_info_id[-1])
+                await send_message_about_queue(message, state, queues_info_id)
+        else:
+            queue_info_id = message.text.split(' ')
+            queue_info_id = int(queue_info_id[-1])
+
+            await state.set_state(GeneralStatesGroup.queue_edit_note)
+            await state.update_data(queue_info_id=queue_info_id)
+
+            await send_message_about_queue(message, state, queue_info_id)
             await message.answer(
-                text='При подгрузке информации об очереди произошла ошибка: '
-                     f'{await get_message_about_status_code(status_code)}.',
-                reply_markup=await reply_markups.get_queues_menu_keyboard()
+                text='Меню редактирования заметок вызвано успешно. '
+                     'Хочешь ли ты редактировать свою заметку для этой очереди?',
+                reply_markup=await reply_markups.get_edit_note_keyboard()
             )
-            return
-        status_code, participants = await queuesdb.get_information_users_participate_queue(queue_info_id=queue_info_id)
-        if status_code != sc.OPERATION_SUCCESS:
-            await state.clear()
-            await message.answer(
-                text='При подгрузке информации об очереди произошла ошибка: '
-                     f'{await get_message_about_status_code(status_code)}.',
-                reply_markup=await reply_markups.get_queues_menu_keyboard()
-            )
-            return
-        await message.answer(
-            text=f'{header}\n\n{participants}',
-            parse_mode='HTML',
-            disable_web_page_preview=True
-        )
     else:
         await message.answer(
             text=f'Непредвиденный статус-код: {await get_message_about_status_code(status_code)}.',
+        )
+
+
+@router.message(GeneralStatesGroup.queue_edit_note, F.text)
+@decorators.user_exists_required
+@decorators.user_in_group_required
+async def queue_edit_note(message: Message, state: FSMContext) -> None:
+    user_data = await state.get_data()
+
+    if message.text.lower() == '◀️ к просмотру регистраций':
+        await state.set_state(GeneralStatesGroup.queues_viewing)
+        now_page = user_data['now_page']
+        markups = user_data['markups']
+
+        await message.answer(
+            text='Меню просмотра регистраций вызвано успешно.',
+            reply_markup=markups[now_page]
+        )
+        return
+    elif message.text.lower() == '❌ удалить заметку':
+        is_success = await queuesdb.update_user_note_for_queue_(
+            user_id=message.from_user.id,
+            queue_info_id=user_data['queue_info_id'],
+            note=None
+        )
+
+        if is_success:
+            await message.answer(
+                text='Твоя заметка удалена успешно.'
+            )
+            await send_message_about_queue(message, state, user_data['queue_info_id'])
+        else:
+            await message.answer(
+                text='Я не смог удалить твою заметку. Произошла ошибка при обращении к БД.'
+            )
+        return
+    elif message.text.lower() == '✏️ редактировать / создать заметку':
+        await state.set_state(GeneralStatesGroup.queue_note_input)
+
+        await message.answer(
+            text='Напиши заметку, которую ты бы хотел оставить (не более 20 символов).',
+            reply_markup=await reply_markups.get_cancel_keyboard()
+        )
+
+
+@router.message(GeneralStatesGroup.queue_note_input, F.text)
+@decorators.user_exists_required
+@decorators.user_in_group_required
+async def queue_note_input(message: Message, state: FSMContext) -> None:
+    note = message.text
+
+    if len(note) > 20:
+        await message.answer(
+            text=f'Заметка слишком длинная ({len(note)} символов). Попробуй придумать нечто иное.'
+        )
+        return
+
+    user_data = await state.get_data()
+
+    is_success = await queuesdb.update_user_note_for_queue_(
+        user_id=message.from_user.id,
+        queue_info_id=user_data['queue_info_id'],
+        note=note
+    )
+
+    if is_success:
+        await state.set_state(GeneralStatesGroup.queue_edit_note)
+        await message.answer(
+            text='Заметка успешно установлена!',
+            reply_markup=await reply_markups.get_edit_note_keyboard()
+        )
+        await send_message_about_queue(message, state, user_data['queue_info_id'])
+    else:
+        await message.answer(
+            text='Заметку установить не вышло. Попробуй снова.'
         )
 
 
@@ -864,6 +962,7 @@ async def captcha_game_process(message: Message, state: FSMContext) -> None:
 @router.message(GeneralStatesGroup.group_source_accepting)
 @router.message(GeneralStatesGroup.queue_choose)
 @router.message(GeneralStatesGroup.queues_viewing)
+@router.message(GeneralStatesGroup.queue_edit_note)
 async def tap_on_button_pls(message: Message) -> None:
     await message.reply('Для свершения какого-либо действия требуется твоё нажатие на представленные кнопки.'
                         '\n\nЕсли передумал, то /cancel.')
@@ -878,6 +977,7 @@ async def tap_on_button_pls(message: Message) -> None:
 @router.message(GeneralStatesGroup.key_input)
 @router.message(GeneralStatesGroup.group_name_input)
 @router.message(GeneralStatesGroup.trade_info_input)
+@router.message(GeneralStatesGroup.queue_note_input)
 async def needed_text(message: Message) -> None:
     await message.reply('Отлично. Но я просил отправить мне текст.\n\nПопробуй снова или отмени действие: /cancel.')
 

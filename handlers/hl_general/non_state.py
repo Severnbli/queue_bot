@@ -597,7 +597,7 @@ async def cmd_view(message: Message, state: FSMContext) -> None:
                  f'{await get_message_about_status_code(status_code)}.'
         )
         return
-    info_in_buttons = []
+    info_in_buttons = ['📦 Информация о всех']
     for queue_info_id in queues_info_ids:
         status_code, info_for_button = await queues_info_db.get_information_to_make_button(queue_info_id)
         if status_code != sc.OPERATION_SUCCESS:
