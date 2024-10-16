@@ -327,7 +327,8 @@ async def cmd_group_info(message: Message) -> None:
     output_message = f'<b>Информация о группе</b>\n\n{info_about_group}'
     await message.answer(
         output_message,
-        parse_mode='HTML'
+        parse_mode='HTML',
+        disable_web_page_preview=True
     )
 
 
