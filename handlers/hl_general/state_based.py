@@ -744,7 +744,8 @@ async def queues_viewing(message: Message, state: FSMContext) -> None:
             return
         await message.answer(
             text=f'{header}\n\n{participants}',
-            parse_mode='HTML'
+            parse_mode='HTML',
+            disable_web_page_preview=True
         )
     else:
         await message.answer(
