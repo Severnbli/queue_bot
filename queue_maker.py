@@ -3,7 +3,6 @@ from datetime import time, datetime, timedelta
 
 from general_usage_funcs import get_day_by_num
 import db.queues_info_table_usage as queues_info_db
-import db.users_table_usage as usersdb
 from db.members_table_usage import get_members_by_group_id_and_subgroup_id, simple_get_members_by_group_id
 from db.users_table_usage import notify_admins_, notify_user_if_news_turned_on_
 from status_codes import StatusCode as sc
@@ -25,7 +24,7 @@ async def prerelease_queues(time_to_release: time):
         lesson_type = info[3]
         day_of_week = info[4]
         text_header = '[АНОНС]'
-        text_ender = 'в ожидании (регистрация откроется в {time_to_release}): {subject} [{lesson_type}] - {day_of_week}'
+        text_ender = f'в ожидании (регистрация откроется в {time_to_release}): {subject} [{lesson_type}] - {day_of_week}'
 
         await notify_members_about_queues(
             group_id=group_id,
