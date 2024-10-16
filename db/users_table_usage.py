@@ -35,7 +35,7 @@ async def notify_users_(users_ids: tuple, text: str):
         if status_code == sc.USER_NOTIFY_SUCCESSFULLY:
             quantity_of_notified_users += 1
 
-            if quantity_of_notified_users % 10:
+            if quantity_of_notified_users % 10 == 0:
                 await asyncio.sleep(1)
 
     return quantity_of_notified_users
