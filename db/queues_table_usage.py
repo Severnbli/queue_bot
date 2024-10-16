@@ -146,9 +146,11 @@ async def get_information_users_participate_queue(queue_info_id: int):
         return sc.NO_USERS_THAT_PARTICIPATE_ENTERED_QUEUE_INFO, None
     info = ''
     for row in rows:
-        info += f'🔹 <b>{row[0]}</b>. {row[1]}'
+        info += f'🔹 <b>{row[0]}</b>. '
         if row[2] is not None:
-            info += f' - @{row[2]}'
+            info += f'<a href="{row[2]}">{row[1]}</a>'
+        else:
+            info += f'{row[1]}'
         info += '\n'
     return sc.OPERATION_SUCCESS, info
 
