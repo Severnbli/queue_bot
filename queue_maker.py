@@ -4,7 +4,7 @@ from datetime import time, datetime, timedelta
 from general_usage_funcs import get_day_by_num
 import db.queues_info_table_usage as queues_info_db
 from db.members_table_usage import get_members_by_group_id_and_subgroup_id, simple_get_members_by_group_id
-from db.users_table_usage import notify_admins_, notify_user_if_news_turned_on_, notify_users_if_news_turned_on_
+from db.users_table_usage import notify_admins_, notify_users_if_news_turned_on_
 from status_codes import StatusCode as sc
 from status_codes import get_message_about_status_code
 
