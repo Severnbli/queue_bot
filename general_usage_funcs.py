@@ -1,4 +1,3 @@
-import asyncio
 import random
 import string
 
@@ -11,7 +10,6 @@ from datetime import datetime, timedelta
 from aiogram.types import Message, ReplyKeyboardMarkup
 
 from status_codes import StatusCode as sc
-from configs import token
 
 
 async def get_random_str(length: int) -> str:
@@ -47,30 +45,6 @@ async def get_image_captcha(length: int) -> tuple[BufferedInputFile, str]:
     data: BytesIO = image_captcha.generate(captcha_text)
     captcha_image = BufferedInputFile(file=data.read(), filename='captcha.png')
     return captcha_image, captcha_text
-
-
-async def notify_user_(user_id: int, text: str):
-    async with aiohttp.ClientSession() as session:
-        url_to_send_message = f'https://api.telegram.org/bot{token}/sendMessage'
-        async with session.post(url=f'{url_to_send_message}?chat_id={user_id}&text={text}') as response:
-            if response.status != 200:
-                return sc.USER_NOTIFY_ERROR
-    return sc.USER_NOTIFY_SUCCESSFULLY
-
-
-async def notify_users_(users_ids: tuple, text: str):
-    quantity_of_notified_users: int = 0
-
-    for user_id in users_ids:
-        status_code = await notify_user_(user_id, text)
-
-        if status_code == sc.USER_NOTIFY_SUCCESSFULLY:
-            quantity_of_notified_users += 1
-
-            if quantity_of_notified_users % 10:
-                await asyncio.sleep(1)
-
-    return quantity_of_notified_users
 
 async def prepare_tuple_info_for_buttons(content: tuple) -> tuple: # In one tuple another tuple
     iterator = 0

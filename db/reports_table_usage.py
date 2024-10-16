@@ -1,6 +1,5 @@
 from db.root import cur, try_commit
 from status_codes import StatusCode as sc
-from general_usage_funcs import notify_user_
 import db.users_table_usage as usersdb
 
 async def reg_report(sender_id, content):
@@ -10,12 +9,8 @@ async def reg_report(sender_id, content):
     report_id = cur.lastrowid
     text = (f'Прилетел новый репорт. В данный момент непроверенных репортов: '
             f'{await get_quantity_of_unchecked_reports()}.')
-    quantity_of_notified_admins = 0
     admins = await usersdb.get_admins_ids()
-    for admin in admins:
-        status_code = await notify_user_(user_id=admin, text=text)
-        if status_code == sc.USER_NOTIFY_SUCCESSFULLY:
-            quantity_of_notified_admins += 1
+    quantity_of_notified_admins = await usersdb.notify_users_(admins, text)
     return sc.OPERATION_SUCCESS, quantity_of_notified_admins, report_id
 
 
@@ -44,7 +39,7 @@ async def get_unchecked_report():
 
 
 async def send_answer_on_report_(report_id: int, sender_id: int, answer_content: str):
-    await notify_user_(user_id=sender_id, text=f'На твой репорт №{report_id} пришёл ответ: {answer_content}')
+    await usersdb.notify_user_(user_id=sender_id, text=f'На твой репорт №{report_id} пришёл ответ: {answer_content}')
     return await make_report_checked_(report_id)
 
 

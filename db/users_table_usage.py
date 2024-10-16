@@ -3,9 +3,54 @@ from status_codes import StatusCode as sc
 import db.roles_table_usage as rolesdb
 import db.groups_table_usage as groupsdb
 import db.members_table_usage as membersdb
-from general_usage_funcs import get_subgroup_name, notify_user_
+from general_usage_funcs import get_subgroup_name
+import aiohttp
+from configs import token
 
 import asyncio
+
+
+async def notify_user_(user_id: int, text: str):
+    async with aiohttp.ClientSession() as session:
+        url_to_send_message = f'https://api.telegram.org/bot{token}/sendMessage'
+        async with session.post(url=f'{url_to_send_message}?chat_id={user_id}&text={text}') as response:
+            if response.status != 200:
+                return sc.USER_NOTIFY_ERROR
+    return sc.USER_NOTIFY_SUCCESSFULLY
+
+
+async def notify_user_if_news_turned_on_(user_id: int, text: str):
+    status_code, is_news = await simple_get_status_of_news(user_id)
+    if status_code == sc.USER_NOTIFY_SUCCESSFULLY and is_news:
+        return await notify_user_(user_id, text)
+    return status_code
+
+
+async def notify_users_(users_ids: tuple, text: str):
+    quantity_of_notified_users: int = 0
+
+    for user_id in users_ids:
+        status_code = await notify_user_(user_id, text)
+
+        if status_code == sc.USER_NOTIFY_SUCCESSFULLY:
+            quantity_of_notified_users += 1
+
+            if quantity_of_notified_users % 10:
+                await asyncio.sleep(1)
+
+    return quantity_of_notified_users
+
+
+async def notify_users_if_news_turned_on_(users_ids: tuple, text: str):
+    users_ids_to_notify = []
+
+    for user_id in users_ids:
+        status_code, is_news = await simple_get_status_of_news(user_id)
+        if status_code == sc.USER_NOTIFY_SUCCESSFULLY and is_news:
+            users_ids_to_notify.append(user_id)
+
+    return notify_users_(tuple(users_ids_to_notify), text)
+
 
 async def is_user_exist_(user_id: int) -> bool:
     await cur.execute('''SELECT COUNT(*) FROM users WHERE id = ?''', (user_id,))
@@ -131,9 +176,7 @@ async def get_admins_ids() -> tuple:
 
 async def notify_admins_(text: str) -> None:
     admins_ids = await get_admins_ids()
-    for admin_id in admins_ids:
-        await notify_user_(admin_id, text)
-
+    await notify_users_(admins_ids, text)
 
 async def get_all_ids_() -> tuple:
     await cur.execute('SELECT id FROM users')
@@ -147,13 +190,7 @@ async def get_all_ids_() -> tuple:
 
 async def notify_all_(text: str) -> int:
     ids = await get_all_ids_()
-    quantity_of_notified_users: int = 0
-    for user_id in ids:
-        if await notify_user_(user_id, text) == sc.USER_NOTIFY_SUCCESSFULLY:
-            quantity_of_notified_users += 1
-            if quantity_of_notified_users % 10 == 0:
-                await asyncio.sleep(1)
-    return quantity_of_notified_users
+    return await notify_users_(ids, text)
 
 async def turn_on_off_subscription_(user_id: int):
     if not await is_user_exist_(user_id):
@@ -191,6 +228,24 @@ async def get_info_about_status_of_news(user_id: int):
     else:
         info_about_status_of_news += '<b>выключено</b>.'
     return sc.OPERATION_SUCCESS, info_about_status_of_news
+
+
+async def simple_get_status_of_news(user_id: int):
+    if not await is_user_exist_(user_id):
+        return sc.USER_NOT_EXIST, None
+    await cur.execute('SELECT is_news '
+                      'FROM users '
+                      'WHERE id = ?', (user_id,))
+    row = await cur.fetchone()
+    if row is None:
+        return sc.DB_ERROR, None
+    is_news = row[0]
+
+    if is_news == 'true':
+        is_news = True
+    else:
+        is_news = False
+    return sc.OPERATION_SUCCESS, is_news
 
 
 async def is_user_admin_(user_id: int) -> bool:

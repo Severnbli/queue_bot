@@ -3,7 +3,6 @@ from status_codes import StatusCode as sc
 import db.queues_table_usage as queuesdb
 import db.users_table_usage as usersdb
 import db.queues_info_table_usage as queues_info_db
-from general_usage_funcs import notify_user_
 
 
 async def check_for_trade(sender_id: int, receiver_id: int, queue_info_id: int):
@@ -69,7 +68,7 @@ async def reg_trade_(sender_id: int, receiver_id: int, queue_info_id: int):
     trade_id = cur.lastrowid
     status_code, sender_nick = await usersdb.get_nick(sender_id)
     status_code, queue_info = await queues_info_db.get_information_to_make_button(queues_info_id=queue_info_id)
-    await notify_user_(user_id=receiver_id, text=f'Пользователь с ником {sender_nick} предлагает тебе поменяться '
+    await usersdb.notify_user_(user_id=receiver_id, text=f'Пользователь с ником {sender_nick} предлагает тебе поменяться '
                                                  f'местами в очереди {queue_info}: ты на {sender_place} место, а он '
                                                  f'на {receiver_place}. Для подтверждения отправь /accept {trade_id}')
     return sc.OPERATION_SUCCESS
@@ -112,7 +111,7 @@ async def accept_trade_(trade_id, accept_sender_id):
     if status_code != sc.OPERATION_SUCCESS:
         return status_code
     status_code, queue_info = await queues_info_db.get_information_to_make_button(queues_info_id=queue_info_id)
-    await notify_user_(
+    await usersdb.notify_user_(
         user_id=sender_id,
         text=f'Трейд в очереди {queue_info} завершён успешно: ты теперь на {receiver_place} месте вместо '
              f'{sender_place}.'
