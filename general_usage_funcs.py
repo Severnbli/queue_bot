@@ -1,3 +1,4 @@
+import asyncio
 import random
 import string
 
@@ -56,6 +57,20 @@ async def notify_user_(user_id: int, text: str):
                 return sc.USER_NOTIFY_ERROR
     return sc.USER_NOTIFY_SUCCESSFULLY
 
+
+async def notify_users_(users_ids: tuple, text: str):
+    quantity_of_notified_users: int = 0
+
+    for user_id in users_ids:
+        status_code = await notify_user_(user_id, text)
+
+        if status_code == sc.USER_NOTIFY_SUCCESSFULLY:
+            quantity_of_notified_users += 1
+
+            if quantity_of_notified_users % 10:
+                await asyncio.sleep(1)
+
+    return quantity_of_notified_users
 
 async def prepare_tuple_info_for_buttons(content: tuple) -> tuple: # In one tuple another tuple
     iterator = 0
