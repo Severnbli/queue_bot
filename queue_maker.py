@@ -11,68 +11,65 @@ from status_codes import get_message_about_status_code
 
 async def prerelease_queues(time_to_release: time):
     status_code, info_about_users_to_notify = await queues_info_db.prerelease_queues_from_active_schedules()
+
     if status_code != sc.OPERATION_SUCCESS:
         await notify_admins_(
             text=f'Prerelease state mistake: {get_message_about_status_code(status_code)}'
         )
         return
 
-    try:
-        async with asyncio.TaskGroup() as tg:
-            for info in info_about_users_to_notify:
-                group_id = info[0]
-                subgroup_id = info[1]
-                subject = info[2]
-                lesson_type = info[3]
-                day_of_week = info[4]
-                text_header = '[АНОНС]'
-                text_ender = f'в ожидании (регистрация откроется в {time_to_release}): {subject} [{lesson_type}] - {day_of_week}'
+    for info in info_about_users_to_notify:
+        group_id = info[0]
+        subgroup_id = info[1]
+        subject = info[2]
+        lesson_type = info[3]
+        day_of_week = info[4]
 
-                tg.create_task(
-                    notify_members_about_queues(
-                        group_id=group_id,
-                        subgroup_id=subgroup_id,
-                        text=f'{text_header} Новая очередь {text_ender}'
-                    )
-                )
-
-                tg.create_task(
-                    notify_members_about_queues(
-                        group_id=group_id,
-                        subgroup_id=subgroup_id,
-                        text=f'{text_header} Очередь {text_ender}',
-                        delay=3000
-                    )
-                )
-    except Exception as e:
-        await notify_admins_(
-            text=f'Prerelease state mistake: {e}'
+        await notify_members_about_queues(
+            group_id=group_id,
+            subgroup_id=subgroup_id,
+            text=f'[АНОНС] Новая очередь в ожидании (регистрация откроется в {time_to_release}): {subject} '
+                 f'[{lesson_type}] - {day_of_week}'
         )
+
+
+async def remind_about_prerelease(time_to_release: time):
+    status_code, queues_info = await queues_info_db.get_release_queues_info()
+
+    if status_code == sc.OPERATION_SUCCESS:
+        for info in queues_info:
+            group_id = info[0]
+            subject = info[1]
+            lesson_type = info[2]
+            subgroup_id = info[3]
+            day_of_week = await get_day_by_num(info[4])
+
+            await notify_members_about_queues(
+                group_id=group_id,
+                subgroup_id=subgroup_id,
+                text=f'[НАПОМНАНИЕ] Очередь в ожидании (регистрация откроется в {time_to_release}): {subject} '
+                 f'[{lesson_type}] - {day_of_week}'
+            )
 
 
 async def release_queues():
     status_code, info_about_users_to_notify = await queues_info_db.release_queues()
+
     if status_code not in [sc.OPERATION_SUCCESS, sc.NO_QUEUES_IN_PRERELEASE]:
         await notify_admins_(
             text=f'Release state mistake: {get_message_about_status_code(status_code)}'
         )
         return
-    try:
-        async with asyncio.TaskGroup() as tg:
-            for info in info_about_users_to_notify:
-                subject = info[2]
-                lesson_type = info[3]
-                day_of_week = await get_day_by_num(info[4])
-                tg.create_task(
-                    notify_members_about_queues(
-                        group_id=info[0],
-                        subgroup_id=info[1],
-                        text=f'[РЕЛИЗ] Открыта регистрация на очередь: {subject} [{lesson_type}] - {day_of_week}'
-                    )
-                )
-    except Exception as e:
-        await notify_admins_(
-            text=f'Release state mistake: {e}'
+
+    for info in info_about_users_to_notify:
+        subject = info[2]
+        lesson_type = info[3]
+        day_of_week = await get_day_by_num(info[4])
+
+        await notify_members_about_queues(
+            group_id=info[0],
+            subgroup_id=info[1],
+            text=f'[РЕЛИЗ] Открыта регистрация на очередь: {subject} [{lesson_type}] - {day_of_week}'
         )
 
 
@@ -104,6 +101,7 @@ async def notify_members_about_queues(group_id: int, subgroup_id, text: str, del
 
 async def timer():
     time_to_prerelease = '19:0:0'
+    time_to_remind = '19:50:0'
     time_to_release = '20:0:0'
     time_to_obsolete = '22:0:0'
     time_range: int = 5
@@ -111,6 +109,10 @@ async def timer():
     dt = datetime.strptime(time_to_prerelease, '%H:%M:%S')
     time_to_prerelease = dt.time()
     time_to_prerelease_range = (dt + timedelta(seconds=time_range)).time()
+
+    dt = datetime.strptime(time_to_remind, '%H:%M:%S')
+    time_to_remind = dt.time()
+    time_to_remind_range = (dt + timedelta(seconds=time_range)).time()
 
     dt = datetime.strptime(time_to_release, '%H:%M:%S')
     time_to_release = dt.time()
@@ -136,6 +138,10 @@ async def timer():
 
         elif time_to_obsolete <= now_time <= time_to_obsolete_range:
             await obsolete_queues()
+            await asyncio.sleep(time_range * 2)
+
+        elif time_to_remind <= now_time <= time_to_remind_range:
+            await remind_about_prerelease(notify_release_time)
             await asyncio.sleep(time_range * 2)
 
         await asyncio.sleep(1)
