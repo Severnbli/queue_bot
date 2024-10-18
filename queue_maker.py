@@ -47,7 +47,7 @@ async def remind_about_prerelease(time_to_release: time):
             await notify_members_about_queues(
                 group_id=group_id,
                 subgroup_id=subgroup_id,
-                text=f'[НАПОМНАНИЕ] Очередь в ожидании (регистрация откроется в {time_to_release}): {subject} '
+                text=f'[НАПОМИНАНИЕ] Очередь в ожидании (регистрация откроется в {time_to_release}): {subject} '
                  f'[{lesson_type}] - {day_of_week}'
             )
 
