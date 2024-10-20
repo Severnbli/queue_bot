@@ -34,7 +34,7 @@ async def prerelease_queues(time_to_release: time):
 
 
 async def remind_about_prerelease(time_to_release: time):
-    status_code, queues_info = await queues_info_db.get_release_queues_info()
+    status_code, queues_info = await queues_info_db.get_prerelease_queues_info()
 
     if status_code == sc.OPERATION_SUCCESS:
         for info in queues_info:
