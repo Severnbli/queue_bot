@@ -7,6 +7,8 @@ from db.members_table_usage import get_members_by_group_id_and_subgroup_id, simp
 from db.users_table_usage import notify_admins_, notify_users_if_news_turned_on_
 from utils.status_codes import StatusCode as sc
 from utils.status_codes import get_message_about_status_code
+from utils.message.Message import Message
+from utils.message.NotifyManager import NotifyManager
 
 
 async def prerelease_queues(time_to_release: time):
@@ -92,7 +94,16 @@ async def notify_members_about_queues(group_id: int, subgroup_id, text: str, del
         else:
             members_ids = await get_members_by_group_id_and_subgroup_id(group_id=group_id, subgroup_id=subgroup_id)
             text += f' - {subgroup_id} подгруппа'
-        await notify_users_if_news_turned_on_(members_ids, text)
+
+        for member_id in members_ids:
+            await NotifyManager.add_message(
+                Message(
+                    user_id=member_id,
+                    text=text,
+                    is_check_news=True
+                )
+            )
+
     except Exception as e:
         await notify_admins_(
             text=f'Error in notify_members_about_queues: {e}'
