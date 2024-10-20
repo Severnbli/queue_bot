@@ -64,23 +64,39 @@ async def cmd_main_menu(message: Message):
 @router.message(Command('start'))
 async def cmd_start(message: Message, state: FSMContext) -> None:
     is_user_exist = await usersdb.is_user_exist_(user_id=message.from_user.id)
+
+    quantity_of_total_users = await usersdb.get_quantity_of_total_users_()
+
     if is_user_exist:
         status_code, nick = await usersdb.get_nick(user_id=message.from_user.id)
+
         if status_code != sc.OPERATION_SUCCESS:
             output_message = await get_message_about_error(status_code=status_code)
+
         else:
-            output_message = f'Привет, <b>{nick}</b>.\n\nСписок команд: /help.'
+            output_message = (f'Привет, <b>{nick}</b>.'
+                              f'Нас уже <b>{quantity_of_total_users}</b>'
+                              f'\n\nСписок команд: /help.')
+
         await message.answer(
-            output_message,
+            text=output_message,
             parse_mode='HTML',
             reply_markup=await reply_markups.get_main_keyboard()
         )
+
     else:
         await state.set_state(GeneralStatesGroup.nick_input)
         await state.update_data(non_stop=True)
-        output_message = ('Я бот для создания очередей. Список команд: /help.'
-                      '\n\nКак я могу тебя называть? Ты всегда сможешь сменить ник с помощью /nick.')
-        await message.answer(output_message, reply_markup=ReplyKeyboardRemove())
+
+        output_message = (f'Я бот для создания очередей. Список команд: /help.'
+                          f'\n\nПрисоединяйся, нас уже <b>{quantity_of_total_users}</b>!'
+                          f'\n\nКак я могу тебя называть? Ты всегда сможешь сменить ник с помощью /nick.')
+
+        await message.answer(
+            text=output_message,
+            parse_mode='HTML',
+            reply_markup=ReplyKeyboardRemove()
+        )
 
 
 @router.message(F.text.lower() == '⚡️ команды')
