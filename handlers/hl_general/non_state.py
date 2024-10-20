@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter
-from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile, ReplyKeyboardMarkup
+from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile
 from aiogram.fsm.context import FSMContext
 import os
 import random
@@ -12,12 +12,11 @@ import db.groups_table_usage as groupsdb
 import db.queues_info_table_usage as queues_info_db
 import db.queues_table_usage as queuesdb
 import db.trades_table_usage as tradesdb
-from status_codes import StatusCode as sc, get_message_about_status_code
-from status_codes import get_message_about_error
-from general_usage_funcs import (get_image_captcha, prepare_tuple_info_for_buttons,
-                                 prepare_all_members_info_to_pretty_form)
+from utils.status_codes import StatusCode as sc, get_message_about_status_code
+from utils.status_codes import get_message_about_error
+from utils.general_usage_funcs import (get_image_captcha)
 from markups import reply_markups
-import decorators
+from utils import decorators
 
 router = Router()
 router.message.filter(StateFilter(None))

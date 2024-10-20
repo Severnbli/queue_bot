@@ -3,7 +3,7 @@ from aiogram.types import Message, ReplyKeyboardRemove
 
 import db.users_table_usage as usersdb
 import db.members_table_usage as membersdb
-from status_codes import StatusCode as sc, get_message_about_error
+from utils.status_codes import StatusCode as sc, get_message_about_error
 from markups import reply_markups
 
 

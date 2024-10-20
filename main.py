@@ -8,7 +8,7 @@ from configs import token
 import handlers.hl_general.root
 import handlers.hl_admin.root
 
-from queue_maker import timer
+from utils.queue_maker import timer
 
 
 async def main():

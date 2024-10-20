@@ -9,7 +9,7 @@ import aiohttp
 from datetime import datetime, timedelta
 from aiogram.types import Message, ReplyKeyboardMarkup
 
-from status_codes import StatusCode as sc
+from utils.status_codes import StatusCode as sc
 
 
 async def get_random_str(length: int) -> str:

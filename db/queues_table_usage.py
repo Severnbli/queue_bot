@@ -1,7 +1,6 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
-from general_usage_funcs import get_day_by_num
+from utils.status_codes import StatusCode as sc
+from utils.general_usage_funcs import get_day_by_num
 import db.queues_info_table_usage as queues_info_db
 
 

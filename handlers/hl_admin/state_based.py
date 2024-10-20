@@ -4,9 +4,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from fsm.general_states import GeneralStatesGroup
-from general_usage_funcs import make_easy_navigation
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
+from utils.general_usage_funcs import make_easy_navigation
+from utils.status_codes import StatusCode as sc
+from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
 import db.reports_table_usage as reportsdb
 import db.users_table_usage as usersdb

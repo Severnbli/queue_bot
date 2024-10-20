@@ -1,5 +1,5 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
+from utils.status_codes import StatusCode as sc
 import db.users_table_usage as usersdb
 
 async def reg_report(sender_id, content):

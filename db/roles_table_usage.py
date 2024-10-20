@@ -1,5 +1,5 @@
-from db.root import cur, try_commit
-from status_codes import StatusCode as sc
+from db.root import cur
+from utils.status_codes import StatusCode as sc
 
 
 async def get_role_description_by_name(role_name: str):

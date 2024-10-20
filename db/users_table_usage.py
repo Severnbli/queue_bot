@@ -1,9 +1,9 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
+from utils.status_codes import StatusCode as sc
 import db.roles_table_usage as rolesdb
 import db.groups_table_usage as groupsdb
 import db.members_table_usage as membersdb
-from general_usage_funcs import get_subgroup_name
+from utils.general_usage_funcs import get_subgroup_name
 import aiohttp
 from configs import token
 

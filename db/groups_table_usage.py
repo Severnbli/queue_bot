@@ -1,8 +1,8 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
+from utils.status_codes import StatusCode as sc
 import db.users_table_usage as usersdb
 import db.members_table_usage as membersdb
-from general_usage_funcs import get_random_str
+from utils.general_usage_funcs import get_random_str
 
 
 async def gen_key_(length: int) -> str:

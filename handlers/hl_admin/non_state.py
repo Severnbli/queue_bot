@@ -5,8 +5,8 @@ from aiogram.types import Message
 
 import db.reports_table_usage as reportsdb
 from fsm.general_states import GeneralStatesGroup
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
+from utils.status_codes import StatusCode as sc
+from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
 
 

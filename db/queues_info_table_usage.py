@@ -1,7 +1,7 @@
 from db.root import cur, try_commit
 from db.schedules_table_usage import get_active_schedules, del_schedules
-from general_usage_funcs import get_next_day_of_week, get_day_of_week, get_day_by_num
-from status_codes import StatusCode as sc
+from utils.general_usage_funcs import get_next_day_of_week, get_day_of_week, get_day_by_num
+from utils.status_codes import StatusCode as sc
 import db.queues_table_usage as queuesdb
 import db.members_table_usage as membersdb
 

@@ -1,6 +1,6 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
-from general_usage_funcs import get_next_day_of_week, get_next_day_week_of_month
+from utils.status_codes import StatusCode as sc
+from utils.general_usage_funcs import get_next_day_of_week, get_next_day_week_of_month
 
 
 async def add_schedule(

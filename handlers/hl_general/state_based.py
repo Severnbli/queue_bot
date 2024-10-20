@@ -11,12 +11,11 @@ import db.users_table_usage as usersdb
 import db.queues_table_usage as queuesdb
 import db.queues_info_table_usage as queues_info_db
 import db.trades_table_usage as tradesdb
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
+from utils.status_codes import StatusCode as sc
+from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
-import decorators
-import schedule
-from general_usage_funcs import make_easy_navigation, get_image_captcha
+from utils import schedule, decorators
+from utils.general_usage_funcs import make_easy_navigation, get_image_captcha
 
 router = Router()
 
