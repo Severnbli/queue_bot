@@ -5,6 +5,7 @@ from aiogram.types import Message
 
 from fsm.general_states import GeneralStatesGroup
 from utils.general_usage_funcs import make_easy_navigation
+from utils.message.NotifyManager import NotifyManager
 from utils.status_codes import StatusCode as sc
 from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
@@ -207,9 +208,11 @@ async def say_accepting(message: Message, state: FSMContext):
         say_text = user_data['say_text']
         await state.clear()
 
-        quantity_of_notified = await usersdb.notify_all_(say_text)
+        await NotifyManager.notify_all(say_text)
+
+        quantity_of_notified = await usersdb.get_quantity_of_total_users_()
         await message.answer(
-            text=f'Количество пользователей, получивших уведомление: <b>{quantity_of_notified}</b>.',
+            text=f'Количество пользователей, которые могли получить уведомление: <b>{quantity_of_notified}</b>.',
             parse_mode='HTML',
             reply_markup=await reply_markups.get_main_keyboard()
         )

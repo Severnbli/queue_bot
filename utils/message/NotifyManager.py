@@ -1,15 +1,17 @@
 import asyncio
 
 from utils.status_codes import StatusCode as sc
-from db.users_table_usage import notify_user_, notify_user_if_news_turned_on_, notify_admins_
+from db.users_table_usage import simple_get_status_of_news, get_admins_ids, get_all_ids_
 from utils.message.Message import Message
+import aiohttp
+from configs import token
 
 
 class NotifyManager:
     messages: list[Message] = []
 
     @staticmethod
-    async def send_messages():
+    async def send_messages() -> None:
         while True:
             affected_users_id: list[int] = []
 
@@ -37,15 +39,62 @@ class NotifyManager:
                 is_check_news = message.is_check_news()
 
                 if is_check_news:
-                    status_code = await notify_user_if_news_turned_on_(user_id, text)
+                    status_code = await NotifyManager.notify_user_if_news_turned_on_(user_id, text)
                 else:
-                    status_code = await notify_user_(user_id, text)
+                    status_code = await NotifyManager.notify_user_(user_id, text)
 
                 if status_code != sc.USER_NOTIFY_SUCCESSFULLY:
-                    await notify_admins_(f'Error. Function: send_messages(): user_id: {user_id}, text: {text}!')
+                    await NotifyManager.notify_admins(f'Error. Function: send_messages(): '
+                                                      f'user_id: {user_id}, text: {text}!')
 
             await asyncio.sleep(1)
 
     @staticmethod
-    async def add_message(message: Message):
+    async def add_message(message: Message) -> None:
         NotifyManager.messages.append(message)
+
+    @staticmethod
+    async def notify_user_(user_id: int, text: str) -> int:
+        async with aiohttp.ClientSession() as session:
+            url_to_send_message = f'https://api.telegram.org/bot{token}/sendMessage'
+
+            async with session.post(url=f'{url_to_send_message}?chat_id={user_id}&text={text}') as response:
+                if response.status != 200:
+                    return sc.USER_NOTIFY_ERROR
+
+        return sc.USER_NOTIFY_SUCCESSFULLY
+
+    @staticmethod
+    async def notify_user_if_news_turned_on_(user_id: int, text: str) -> int:
+        status_code, is_news = await simple_get_status_of_news(user_id)
+
+        if status_code == sc.OPERATION_SUCCESS and is_news:
+            return await NotifyManager.notify_user_(user_id, text)
+
+        return status_code
+
+    @staticmethod
+    async def notify_admins(text: str) -> None:
+        admins_ids = await get_admins_ids()
+
+        for admin_id in admins_ids:
+            await NotifyManager.add_message(
+                Message(
+                    user_id=admin_id,
+                    text=text,
+                    is_check_news=False
+                )
+            )
+
+    @staticmethod
+    async def notify_all(text: str) -> None:
+        user_ids = await get_all_ids_()
+
+        for user_id in user_ids:
+            await NotifyManager.add_message(
+                Message(
+                    user_id=user_id,
+                    text=text,
+                    is_check_news=True
+                )
+            )
