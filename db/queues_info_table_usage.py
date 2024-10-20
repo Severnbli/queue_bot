@@ -38,15 +38,19 @@ async def prerelease_queues_from_active_schedules():
 async def release_queues():
     await cur.execute('SELECT group_id, subgroup, subject, lesson_type, day_of_week '
                       "FROM queues_info WHERE status = 'prerelease'")
+
     info_about_users = await cur.fetchall()
+
     if info_about_users is None:
         return sc.NO_QUEUES_IN_PRERELEASE, None
+
     await cur.execute('UPDATE queues_info '
                       "SET status = 'release' "
-                      "WHERE status = 'prerelease'"
-                      "AND day_of_week = ?", (await get_next_day_of_week(),))
+                      "WHERE status = 'prerelease'")
+
     if not await try_commit():
         return sc.DB_ERROR, None
+
     return sc.OPERATION_SUCCESS, info_about_users
 
 
