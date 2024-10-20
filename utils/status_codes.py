@@ -39,6 +39,7 @@ class StatusCode:
     USER_WITH_SUCH_PLACE_IN_SUCH_QUEUE_NOT_EXIST = 138
     TRADE_EXIST = 139
     NO_REPORTS_TO_CHECK = 140
+    SEND_TRADE_TO_YOURSELF = 141
 
     DB_ERROR = 404
 
@@ -126,6 +127,8 @@ async def get_message_about_status_code(status_code: int) -> str:
         return 'трейд с аналогичными параметрами уже создан'
     elif status_code == StatusCode.NO_REPORTS_TO_CHECK:
         return 'нет репортов для проверки'
+    elif status_code == StatusCode.SEND_TRADE_TO_YOURSELF:
+        return 'отправка трейда самому себе'
     else:
         return f'неизвестный статусный код: {status_code}'
 
