@@ -9,6 +9,7 @@ import handlers.hl_general.root
 import handlers.hl_admin.root
 
 from utils.queue_maker import timer
+from utils.message.NotifyManager import NotifyManager
 
 
 async def main():
@@ -26,12 +27,14 @@ async def parse_processes():
         async with asyncio.TaskGroup() as tg:
             bot_task = tg.create_task(main())
             timer_task = tg.create_task(timer())
+            notify_task = tg.create_task(NotifyManager.send_messages())
 
     except* Exception as e:
         logging.error(f"An error occurred: {e}")
 
     if bot_task.done() and timer_task.done():
-        logging.info(f"Async tasks have completed now: {bot_task.result()}, {timer_task.result()}")
+        logging.info(f"Async tasks have completed: {bot_task.result()}, {timer_task.result()}, "
+                     f"{notify_task.result()}")
     else:
         logging.warning("One or more tasks did not complete successfully.")
 
