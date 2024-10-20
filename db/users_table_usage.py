@@ -4,53 +4,6 @@ import db.roles_table_usage as rolesdb
 import db.groups_table_usage as groupsdb
 import db.members_table_usage as membersdb
 from utils.general_usage_funcs import get_subgroup_name
-import aiohttp
-from configs import token
-
-import asyncio
-
-
-async def notify_user_(user_id: int, text: str):
-    async with aiohttp.ClientSession() as session:
-        url_to_send_message = f'https://api.telegram.org/bot{token}/sendMessage'
-        async with session.post(url=f'{url_to_send_message}?chat_id={user_id}&text={text}') as response:
-            if response.status != 200:
-                return sc.USER_NOTIFY_ERROR
-    return sc.USER_NOTIFY_SUCCESSFULLY
-
-
-async def notify_user_if_news_turned_on_(user_id: int, text: str):
-    status_code, is_news = await simple_get_status_of_news(user_id)
-    if status_code == sc.OPERATION_SUCCESS and is_news:
-        return await notify_user_(user_id, text)
-    return status_code
-
-
-async def notify_users_(users_ids: tuple, text: str):
-    quantity_of_notified_users: int = 0
-
-    for user_id in users_ids:
-        status_code = await notify_user_(user_id, text)
-
-        if status_code == sc.USER_NOTIFY_SUCCESSFULLY:
-            quantity_of_notified_users += 1
-
-            if quantity_of_notified_users % 10 == 0:
-                await asyncio.sleep(1)
-
-    return quantity_of_notified_users
-
-
-async def notify_users_if_news_turned_on_(users_ids: tuple, text: str):
-    users_ids_to_notify = []
-
-    for user_id in users_ids:
-        status_code, is_news = await simple_get_status_of_news(user_id)
-        if status_code == sc.OPERATION_SUCCESS and is_news:
-            users_ids_to_notify.append(user_id)
-
-    return await notify_users_(tuple(users_ids_to_notify), text)
-
 
 async def is_user_exist_(user_id: int) -> bool:
     await cur.execute('''SELECT COUNT(*) FROM users WHERE id = ?''', (user_id,))
@@ -174,10 +127,6 @@ async def get_admins_ids() -> tuple:
     return tuple(admins_ids)
 
 
-async def notify_admins_(text: str) -> None:
-    admins_ids = await get_admins_ids()
-    await notify_users_(admins_ids, text)
-
 async def get_all_ids_() -> tuple:
     await cur.execute('SELECT id FROM users')
     rows = await cur.fetchall()
@@ -187,10 +136,6 @@ async def get_all_ids_() -> tuple:
            ids.append(row[0])
     return tuple(ids)
 
-
-async def notify_all_(text: str) -> int:
-    ids = await get_all_ids_()
-    return await notify_users_(ids, text)
 
 async def turn_on_off_subscription_(user_id: int):
     if not await is_user_exist_(user_id):
@@ -256,3 +201,14 @@ async def is_user_admin_(user_id: int) -> bool:
     if row[0] == 'admin':
         return True
     return False
+
+
+async def get_quantity_of_total_users_():
+    await cur.execute('SELECT COUNT(*) FROM users')
+
+    row = await cur.fetchone()
+
+    if row is None:
+        return 0
+    else:
+        return int(row[0])
