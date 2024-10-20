@@ -1,16 +1,24 @@
 from db.root import cur, try_commit
+from utils.message.Message import Message
+from utils.message.NotifyManager import NotifyManager
 from utils.status_codes import StatusCode as sc
 import db.users_table_usage as usersdb
 
 async def reg_report(sender_id, content):
     await cur.execute('''INSERT INTO reports (sender_id, content) VALUES (?, ?)''', (sender_id, content))
+
     if not await try_commit():
         return sc.DB_ERROR, None
+
     report_id = cur.lastrowid
+
     text = (f'Прилетел новый репорт. В данный момент непроверенных репортов: '
             f'{await get_quantity_of_unchecked_reports()}.')
-    admins = await usersdb.get_admins_ids()
-    quantity_of_notified_admins = await usersdb.notify_users_(admins, text)
+
+    await NotifyManager.notify_admins(text=text)
+
+    quantity_of_notified_admins = await usersdb.get_quantity_of_admins_()
+
     return sc.OPERATION_SUCCESS, quantity_of_notified_admins, report_id
 
 
@@ -39,7 +47,14 @@ async def get_unchecked_report():
 
 
 async def send_answer_on_report_(report_id: int, sender_id: int, answer_content: str):
-    await usersdb.notify_user_(user_id=sender_id, text=f'На твой репорт №{report_id} пришёл ответ: {answer_content}')
+    await NotifyManager.add_message(
+        Message(
+            user_id=sender_id,
+            text=f'На твой репорт №{report_id} пришёл ответ: {answer_content}',
+            is_check_news=False
+        )
+    )
+
     return await make_report_checked_(report_id)
 
 
