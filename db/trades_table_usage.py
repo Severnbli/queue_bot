@@ -37,19 +37,31 @@ async def get_sender_and_receiver_places_in_queue(sender_id: int, receiver_id: i
 
 
 async def reg_trade_(sender_id: int, receiver_id: int, queue_info_id: int):
+    if sender_id == receiver_id:
+        return sc.SEND_TRADE_TO_YOURSELF
+
     status_code, queue_info_status = await queues_info_db.simple_get_status_of_queue_info(queue_info_id)
+
     if status_code != sc.OPERATION_SUCCESS:
         return status_code
+
     if queue_info_status != 'release':
         return sc.QUEUE_INFO_NOT_SUITABLE
+
     status_code = await check_for_trade(sender_id, receiver_id, queue_info_id)
+
     if status_code != sc.OPERATION_SUCCESS:
         return status_code
+
     status_code, trade_places = await get_sender_and_receiver_places_in_queue(sender_id, receiver_id, queue_info_id)
+
     if status_code != sc.OPERATION_SUCCESS:
         return status_code
+
     sender_place = trade_places["sender_place"]
+
     receiver_place = trade_places["receiver_place"]
+
     await cur.execute('SELECT COUNT(*) '
                       'FROM trades '
                       'WHERE sender_id = ? '
@@ -57,16 +69,23 @@ async def reg_trade_(sender_id: int, receiver_id: int, queue_info_id: int):
                       'AND receiver_id = ? '
                       'AND receiver_place = ? '
                       'AND queue_info_id = ? ' ,(sender_id, sender_place, receiver_id, receiver_place, queue_info_id))
+
     row = await cur.fetchone()
+
     if row is None:
         return sc.DB_ERROR
+
     is_trade_exist = bool(row[0])
+
     if is_trade_exist:
         return sc.TRADE_EXIST
+
     await cur.execute('INSERT INTO trades (sender_id, sender_place, receiver_id, receiver_place, queue_info_id) '
                       'VALUES (?, ?, ?, ?, ?)', (sender_id, sender_place, receiver_id, receiver_place, queue_info_id))
+
     if not await try_commit():
         return sc.DB_ERROR
+
     trade_id = cur.lastrowid
     status_code, sender_nick = await usersdb.get_nick(sender_id)
     status_code, queue_info = await queues_info_db.get_information_to_make_button(queues_info_id=queue_info_id)
