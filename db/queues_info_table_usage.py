@@ -188,16 +188,11 @@ async def simple_get_status_of_queue_info(queue_info_id: int):
 async def get_release_queues_info():
     await cur.execute('SELECT group_id, subject, lesson_type, subgroup, day_of_week '
                       'FROM queues_info '
-                      'WHERE status = ?', ('release',))
+                      'WHERE status = ?', ('prerelease',))
 
     rows = await cur.fetchall()
 
     if len(rows) == 0:
         return sc.NO_QUEUES_IN_RELEASE, None
 
-    queues_info = []
-
-    for row in rows:
-        queues_info.append(row[0])
-
-    return sc.OPERATION_SUCCESS, queues_info
+    return sc.OPERATION_SUCCESS, rows
