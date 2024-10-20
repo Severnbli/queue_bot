@@ -212,3 +212,15 @@ async def get_quantity_of_total_users_():
         return 0
     else:
         return int(row[0])
+
+
+async def get_quantity_of_admins_():
+    await cur.execute('SELECT COUNT(*) FROM users '
+                      'WHERE role_name = ?', ('admin',))
+
+    row = await cur.fetchone()
+
+    if row is None:
+        return 0
+    else:
+        return int(row[0])
