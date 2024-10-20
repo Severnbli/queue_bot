@@ -75,7 +75,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
         else:
             output_message = (f'Привет, <b>{nick}</b>.'
-                              f'Нас уже <b>{quantity_of_total_users}</b>'
+                              f'Нас уже <b>{quantity_of_total_users}</b>!'
                               f'\n\nСписок команд: /help.')
 
         await message.answer(
