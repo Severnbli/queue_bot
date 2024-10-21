@@ -68,7 +68,6 @@ async def prepare_all_members_info_to_pretty_form(members: list) -> [list, list]
     info_with_members_users_ids = []
 
     for member in members:
-        info_about_member = []
 
         if member[3] == 'leader':
             rang = '👑 '
@@ -77,10 +76,10 @@ async def prepare_all_members_info_to_pretty_form(members: list) -> [list, list]
         else:
             rang = ''
 
-        info_about_member.append(f'{rang}{str(member[0])}')
+        info_about_member = f'{rang}{str(member[0])}'
 
         if member[1] is not None:
-            info_about_member.append(f' {str(member[1])}')
+            info_about_member += f' {str(member[1])}'
 
         info_with_members_users_ids.append([member[0], member[2]])
 
