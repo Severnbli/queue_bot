@@ -599,20 +599,25 @@ async def cmd_reg(message: Message, state: FSMContext) -> None:
 @decorators.user_in_group_required
 async def cmd_view(message: Message, state: FSMContext) -> None:
     output_message = await queuesdb.get_info_about_user_participation_in_queues(user_id=message.from_user.id)
+
     status_code, queues_info_ids = \
         await queuesdb.simple_get_queues_info_ids_which_user_participate(user_id=message.from_user.id)
+
     if status_code == sc.USER_NOT_PARTICIPATE_IN_ANY_QUEUES:
         await message.answer(
             output_message
         )
         return
+
     elif status_code != sc.OPERATION_SUCCESS:
         await message.answer(
             text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
                  f'{await get_message_about_status_code(status_code)}.'
         )
         return
+
     info_in_buttons = ['📦 Информация о всех']
+
     for queue_info_id in queues_info_ids:
         status_code, info_for_button = await queues_info_db.get_information_to_make_button(queue_info_id)
         if status_code != sc.OPERATION_SUCCESS:
@@ -621,13 +626,19 @@ async def cmd_view(message: Message, state: FSMContext) -> None:
                      f'{await get_message_about_status_code(status_code)}.'
             )
             return
+
         info_in_buttons.append(info_for_button)
+
     markups, quantity_of_pages = \
         await reply_markups.parse_some_information_to_make_easy_navigation(tuple(info_in_buttons), 2)
+
     now_page = 0
+
     await state.set_state(GeneralStatesGroup.queues_viewing)
+
     await state.update_data(back_step='queues_menu', markups=markups, quantity_of_pages=quantity_of_pages,
                             now_page=now_page, info_in_buttons=info_in_buttons)
+
     await message.answer(
         text=output_message,
         parse_mode='HTML',
