@@ -15,7 +15,7 @@ class GeneralStatesGroup(StatesGroup):
     key_input = State()
     quit_accepting = State()
     del_group_accepting = State()
-    manage_members = State()
+    manage_member = State()
     member_select = State()
     source_choose = State()
     group_source_input = State()
