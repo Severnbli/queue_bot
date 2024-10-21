@@ -11,6 +11,7 @@ import db.users_table_usage as usersdb
 import db.queues_table_usage as queuesdb
 import db.queues_info_table_usage as queues_info_db
 import db.trades_table_usage as tradesdb
+from handlers.hl_general.non_state import prepare_info_for_managing_queues
 from utils.status_codes import StatusCode as sc
 from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
@@ -726,6 +727,16 @@ async def send_message_about_queue(message: Message, state: FSMContext, queue_in
 @decorators.user_in_group_required
 async def queues_viewing(message: Message, state: FSMContext) -> None:
     user_data = await state.get_data()
+
+    old_page = user_data['now_page']
+
+    status_code = await prepare_info_for_managing_queues(message, state, old_page)
+
+    if status_code != sc.OPERATION_SUCCESS:
+        return
+
+    user_data = await state.get_data()
+
     now_page = user_data['now_page']
     markups = user_data['markups']
     quantity_of_pages = user_data['quantity_of_pages']
@@ -780,14 +791,10 @@ async def queue_edit_note(message: Message, state: FSMContext) -> None:
     user_data = await state.get_data()
 
     if message.text.lower() == '◀️ к просмотру регистраций':
-        await state.set_state(GeneralStatesGroup.queues_viewing)
-        now_page = user_data['now_page']
-        markups = user_data['markups']
+        old_page = user_data['now_page']
 
-        await message.answer(
-            text='Меню просмотра регистраций вызвано успешно.',
-            reply_markup=markups[now_page]
-        )
+        await prepare_info_for_managing_queues(message, state, old_page)
+
         return
     elif message.text.lower() == '❌ удалить заметку':
         is_success = await queuesdb.update_user_note_for_queue_(
