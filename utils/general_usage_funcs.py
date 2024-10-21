@@ -60,8 +60,12 @@ async def prepare_tuple_info_for_buttons(content: tuple) -> tuple: # In one tupl
     return tuple(prepared_info)
 
 
-async def prepare_all_members_info_to_pretty_form(members: list) -> tuple:
-    prepared_members = []
+async def prepare_all_members_info_to_pretty_form(members: list) -> [list, list]:
+    # List content: ['position nick username', ]
+    info_for_buttons = []
+
+    # List content: [[nick, user_id], ]
+    info_with_members_users_ids = []
 
     for member in members:
         info_about_member = []
@@ -78,9 +82,11 @@ async def prepare_all_members_info_to_pretty_form(members: list) -> tuple:
         if member[1] is not None:
             info_about_member.append(f' {str(member[1])}')
 
-        prepared_members.append(info_about_member)
+        info_with_members_users_ids.append([member[0], member[2]])
 
-    return tuple(prepared_members)
+        info_for_buttons.append(info_about_member)
+
+    return info_for_buttons, info_with_members_users_ids
 
 
 async def get_num_of_day(day: str) -> int:
