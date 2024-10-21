@@ -14,7 +14,8 @@ import db.queues_table_usage as queuesdb
 import db.trades_table_usage as tradesdb
 from utils.status_codes import StatusCode as sc, get_message_about_status_code
 from utils.status_codes import get_message_about_error
-from utils.general_usage_funcs import (get_image_captcha)
+from utils.general_usage_funcs import (get_image_captcha, prepare_all_members_info_to_pretty_form,
+                                       prepare_tuple_info_for_buttons)
 from markups import reply_markups
 from utils import decorators
 
@@ -459,56 +460,70 @@ async def cmd_del_group(message: Message, state: FSMContext) -> None:
     )
 
 
+async def prepare_info_for_managing_members(message: Message, state: FSMContext, old_page: int = 0):
+    status_code, group_id = await membersdb.get_group_id_by_user_id(message.from_user.id)
+
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+
+        await message.answer(
+            text='Возникла ошибка при определении группы, в которой ты находишься: '
+                 f'{await get_message_about_status_code(status_code)}.'
+        )
+        return sc.STOP
+
+    status_code, members = await membersdb.get_all_members_of_group(group_id)
+
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+
+        await message.answer(
+            text='Возникла ошибка при выгрузке списка участников группы: '
+                 f'{await get_message_about_status_code(status_code)}.'
+        )
+        return sc.STOP
+
+    await state.set_state(GeneralStatesGroup.member_select)
+
+    info_in_buttons, info_with_members_users_ids = await prepare_all_members_info_to_pretty_form(members)
+
+    markups, quantity_of_pages = \
+        await reply_markups.parse_some_information_to_make_easy_navigation(info_in_buttons, 2)
+
+    if old_page > quantity_of_pages - 1:
+        now_page = quantity_of_pages - 1
+    elif old_page < 0:
+        now_page = 0
+    else:
+        now_page = old_page
+
+    await state.update_data(
+        info_in_buttons=info_in_buttons,
+        info_with_members_users_ids=info_with_members_users_ids,
+        markups=markups,
+        now_page=now_page,
+        quantity_of_pages=quantity_of_pages,
+        back_step='manage_group'
+    )
+
+    await message.answer(
+        text='Выбери участника группы для свершения действия над ним.\n\n'
+             'Ты также можешь самостоятельно ввести его ник или переслать любое его сообщение.\n\n'
+             f'Выбрана страница: <b>{now_page + 1}</b>. Всего страниц: <b>{quantity_of_pages}</b>.',
+        parse_mode='HTML',
+        reply_markup=markups[now_page]
+    )
+
+    return sc.OPERATION_SUCCESS
+
+
 @router.message(F.text.lower() == '⚙️ управление участниками')
 @router.message(Command('manage_members'))
 @decorators.user_exists_required
 @decorators.user_in_group_required
 @decorators.user_group_leader_or_depute_required
 async def cmd_manage_members(message: Message, state: FSMContext) -> None:
-    await message.answer(
-        text='Эта функция будет реализована в последующем.'
-    )
-    # status_code, group_id = await membersdb.get_group_id_by_user_id(message.from_user.id)
-    # if status_code != sc.OPERATION_SUCCESS:
-    #     await message.answer(
-    #         text='Возникла ошибка при определении группы, в которой ты находишься: '
-    #              f'{await get_message_about_status_code(status_code)}.'
-    #     )
-    #     return
-    # status_code, members = await membersdb.get_all_members_of_group(group_id)
-    # if status_code != sc.OPERATION_SUCCESS:
-    #     await message.answer(
-    #         text='Возникла ошибка при выгрузке списка участников группы: '
-    #              f'{await get_message_about_status_code(status_code)}.'
-    #     )
-    #     return
-    # status_code, nicks = await membersdb.get_all_nicks_by_group_id(group_id)
-    # if status_code != sc.OPERATION_SUCCESS:
-    #     await message.answer(
-    #         text='Возникла ошибка при выгрузке ников участников группы: '
-    #              f'{await get_message_about_status_code(status_code)}.'
-    #     )
-    #     return
-    # await state.set_state(GeneralStatesGroup.member_select)
-    # prepared_members = await prepare_all_members_info_to_pretty_form(members)
-    # prepared_info = await prepare_tuple_info_for_buttons(prepared_members)
-    # markups, quantity_of_pages = \
-    #     await reply_markups.parse_some_information_to_make_easy_navigation(prepared_info, 2)
-    # now_page = 0
-    # await state.update_data(
-    #     nicks=nicks,
-    #     markups=markups,
-    #     now_page=now_page,
-    #     quantity_of_pages=quantity_of_pages,
-    #     back_step='manage_group'
-    # )
-    # await message.answer(
-    #     text='Выбери участника группы для свершения действия над ним.\n\n'
-    #          'Ты также можешь самостоятельно ввести его ник или переслать любое его сообщение.\n\n'
-    #          f'Выбрана страница: <b>{now_page + 1}</b>. Всего страниц: <b>{quantity_of_pages}</b>.',
-    #     parse_mode='HTML',
-    #     reply_markup=markups[now_page]
-    # )
+    await prepare_info_for_managing_members(message, state)
 
 
 @router.message(F.text.lower() == '◀️ к настройкам очередей')
