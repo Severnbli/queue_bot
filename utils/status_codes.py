@@ -40,6 +40,7 @@ class StatusCode:
     TRADE_EXIST = 139
     NO_REPORTS_TO_CHECK = 140
     SEND_TRADE_TO_YOURSELF = 141
+    STOP = 142
 
     DB_ERROR = 404
 
@@ -129,6 +130,8 @@ async def get_message_about_status_code(status_code: int) -> str:
         return 'нет репортов для проверки'
     elif status_code == StatusCode.SEND_TRADE_TO_YOURSELF:
         return 'отправка трейда самому себе'
+    elif status_code == StatusCode.STOP:
+        return 'вызвана команда к остановке'
     else:
         return f'неизвестный статусный код: {status_code}'
 
