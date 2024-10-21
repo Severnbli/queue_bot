@@ -65,6 +65,9 @@ async def get_main_keyboard(placeholder: str = 'Нажми кнопку меню
         [
             KeyboardButton(text='⚡️ Команды'),
             KeyboardButton(text='💬 Репорт')
+        ],
+        [
+            KeyboardButton(text='🎲 Развлечения')
         ]
     ]
     keyboard = ReplyKeyboardMarkup(
@@ -382,6 +385,26 @@ async def get_edit_note_keyboard() -> ReplyKeyboardMarkup:
         ]
     ]
 
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True
+    )
+    return keyboard
+
+
+async def get_games_keyboard() -> ReplyKeyboardMarkup:
+    kb = [
+        [
+            KeyboardButton(text='🧩 Каптча'),
+            KeyboardButton(text='🤡 Анекдот')
+        ],
+        [
+            KeyboardButton(text='🏆 Таблицы рекордов')
+        ],
+        [
+            KeyboardButton(text='◀️ В главное меню')
+        ]
+    ]
     keyboard = ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True

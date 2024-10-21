@@ -691,6 +691,17 @@ async def cmd_members(message: Message) -> None:
     return
 
 
+@router.message(F.text.lower() == '🎲 развлечения')
+@router.message(Command('games'))
+@decorators.user_exists_required
+async def cmd_games(message: Message) -> None:
+    await message.answer(
+        text='Так, посмотрим-с, во что я могу с тобой поиграть...',
+        reply_markup=await reply_markups.get_games_keyboard()
+    )
+
+
+@router.message(F.text.lower() == '🧩 каптча')
 @router.message(Command('captcha_game'))
 @decorators.user_exists_required
 async def cmd_captcha_game(message: Message, state: FSMContext) -> None:
@@ -698,6 +709,24 @@ async def cmd_captcha_game(message: Message, state: FSMContext) -> None:
     await message.answer(
         text='Выбери количество символов в каптче. Отправь мне целое число.',
         reply_markup=await reply_markups.get_cancel_keyboard()
+    )
+
+
+@router.message(F.text.lower() == '🤡 анекдот')
+@router.message(Command('joke'))
+@decorators.user_exists_required
+async def cmd_joke(message: Message) -> None:
+    await message.answer(
+        text='Эта функциональность будет реализована в последующем.'
+    )
+
+
+@router.message(F.text.lower() == '🏆 таблицы рекордов')
+@router.message(Command('records'))
+@decorators.user_exists_required
+async def cmd_records(message: Message) -> None:
+    await message.answer(
+        text='Эта функциональность будет реализована в последующем.'
     )
 
 
