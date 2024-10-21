@@ -62,18 +62,24 @@ async def prepare_tuple_info_for_buttons(content: tuple) -> tuple: # In one tupl
 
 async def prepare_all_members_info_to_pretty_form(members: list) -> tuple:
     prepared_members = []
+
     for member in members:
         info_about_member = []
+
         if member[3] == 'leader':
             rang = '👑 '
         elif member[3] == 'depute':
             rang = '🎖 '
         else:
             rang = ''
+
         info_about_member.append(f'{rang}{str(member[0])}')
+
         if member[1] is not None:
-            info_about_member.append(f'@{str(member[1])}')
+            info_about_member.append(f' {str(member[1])}')
+
         prepared_members.append(info_about_member)
+
     return tuple(prepared_members)
 
 
