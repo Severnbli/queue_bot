@@ -637,7 +637,7 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
     markups, quantity_of_pages = \
         await reply_markups.parse_some_information_to_make_easy_navigation(tuple(info_in_buttons), 2)
 
-    if old_page > quantity_of_pages:
+    if old_page > quantity_of_pages - 1:
         now_page = quantity_of_pages - 1
     elif old_page < 0:
         now_page = 0
