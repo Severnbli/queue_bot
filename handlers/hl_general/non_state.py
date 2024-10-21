@@ -600,12 +600,16 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
         await queuesdb.simple_get_queues_info_ids_which_user_participate(user_id=message.from_user.id)
 
     if status_code == sc.USER_NOT_PARTICIPATE_IN_ANY_QUEUES:
+        await state.clear()
+
         await message.answer(
             output_message
         )
         return
 
     elif status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+
         await message.answer(
             text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
                  f'{await get_message_about_status_code(status_code)}.'
@@ -617,6 +621,8 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
     for queue_info_id in queues_info_ids:
         status_code, info_for_button = await queues_info_db.get_information_to_make_button(queue_info_id)
         if status_code != sc.OPERATION_SUCCESS:
+            await state.clear()
+
             await message.answer(
                 text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
                      f'{await get_message_about_status_code(status_code)}.'
