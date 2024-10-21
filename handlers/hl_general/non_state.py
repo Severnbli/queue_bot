@@ -604,7 +604,7 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
 
         await message.answer(
             text=output_message,
-            reply_markup=await reply_markups.get_manage_queues_keyboard()
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
         )
         return sc.STOP
 
@@ -614,7 +614,7 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
         await message.answer(
             text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
                  f'{await get_message_about_status_code(status_code)}.',
-            reply_markup=await reply_markups.get_manage_queues_keyboard()
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
         )
         return sc.STOP
 
@@ -628,7 +628,7 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
             await message.answer(
                 text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
                      f'{await get_message_about_status_code(status_code)}.',
-                reply_markup=await reply_markups.get_manage_queues_keyboard()
+                reply_markup=await reply_markups.get_queues_menu_keyboard()
             )
             return sc.STOP
 
