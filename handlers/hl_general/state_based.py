@@ -41,6 +41,8 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
                 markup = await reply_markups.get_manage_queues_keyboard()
             elif back_step == 'queues_menu':
                 markup = await reply_markups.get_queues_menu_keyboard()
+            elif back_step == 'games_menu':
+                markup = await reply_markups.get_games_keyboard()
             else:
                 markup = await reply_markups.get_main_keyboard()
         else:
