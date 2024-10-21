@@ -593,7 +593,7 @@ async def cmd_reg(message: Message, state: FSMContext) -> None:
     )
 
 
-async def prepare_info_for_managing_queues(message: Message, state: FSMContext, old_page: int = 0) -> None:
+async def prepare_info_for_managing_queues(message: Message, state: FSMContext, old_page: int = 0):
     output_message = await queuesdb.get_info_about_user_participation_in_queues(user_id=message.from_user.id)
 
     status_code, queues_info_ids = \
@@ -603,18 +603,20 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
         await state.clear()
 
         await message.answer(
-            output_message
+            text=output_message,
+            reply_markup=await reply_markups.get_manage_queues_keyboard()
         )
-        return
+        return sc.STOP
 
     elif status_code != sc.OPERATION_SUCCESS:
         await state.clear()
 
         await message.answer(
             text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
-                 f'{await get_message_about_status_code(status_code)}.'
+                 f'{await get_message_about_status_code(status_code)}.',
+            reply_markup=await reply_markups.get_manage_queues_keyboard()
         )
-        return
+        return sc.STOP
 
     info_in_buttons = ['📦 Информация о всех']
 
@@ -625,9 +627,10 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
 
             await message.answer(
                 text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
-                     f'{await get_message_about_status_code(status_code)}.'
+                     f'{await get_message_about_status_code(status_code)}.',
+                reply_markup=await reply_markups.get_manage_queues_keyboard()
             )
-            return
+            return sc.STOP
 
         info_in_buttons.append(info_for_button)
 
@@ -651,6 +654,8 @@ async def prepare_info_for_managing_queues(message: Message, state: FSMContext, 
         parse_mode='HTML',
         reply_markup=markups[now_page]
     )
+
+    return sc.OPERATION_SUCCESS
 
 
 @router.message(F.text.lower() == '📋 просмотр регистраций')
