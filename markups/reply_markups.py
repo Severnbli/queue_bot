@@ -201,8 +201,7 @@ async def get_subgroup_keyboard() -> ReplyKeyboardMarkup:
 async def get_manage_members_keyboard(position: str) -> ReplyKeyboardMarkup:
     kb = [
         [
-            KeyboardButton(text='🏴 Добавление в ЧС'),
-            KeyboardButton(text='🏳️ Помилование')
+            KeyboardButton(text='🏴 Добавление в ЧС')
         ],
         [
             KeyboardButton(text='◀️ К выбору ника'),
@@ -212,14 +211,32 @@ async def get_manage_members_keyboard(position: str) -> ReplyKeyboardMarkup:
     if position == 'leader':
         kb_leader_additional = [
             [
-                KeyboardButton(text='📈 Добавление заместителя'),
-                KeyboardButton(text='📉 Снятие заместителя')
+                KeyboardButton(text='📈 Повысить до заместителя'),
+                KeyboardButton(text='📉 Снять с заместителя')
             ],
             [
                 KeyboardButton(text='👑 Передача лидерства')
             ]
         ]
         kb[1:1] = kb_leader_additional
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb,
+        resize_keyboard=True
+    )
+    return keyboard
+
+
+async def get_pardon_keyboard() -> ReplyKeyboardMarkup:
+    kb = [
+        [
+            KeyboardButton(text='🏳️ Помилование')
+        ],
+        [
+            KeyboardButton(text='◀️ К выбору ника'),
+            KeyboardButton(text='⛔️ Выход / отмена')
+        ]
+    ]
+
     keyboard = ReplyKeyboardMarkup(
         keyboard=kb,
         resize_keyboard=True
