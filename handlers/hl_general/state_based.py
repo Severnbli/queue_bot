@@ -20,6 +20,9 @@ from utils.general_usage_funcs import make_easy_navigation, get_image_captcha
 
 router = Router()
 
+CAPTCHA_GAME_MIN_PARAMETER: int = 1
+CAPTCHA_GAME_MAX_PARAMETER: int = 20
+
 
 @router.message(F.text.lower() == '⛔️ выход / отмена')
 @router.message(Command('cancel'))
@@ -897,8 +900,6 @@ async def trade_info_input(message: Message, state: FSMContext) -> None:
 @router.message(GeneralStatesGroup.captcha_game_setup, F.text)
 @decorators.user_exists_required
 async def captcha_game_setup(message: Message, state: FSMContext) -> None:
-    CAPTCHA_GAME_MIN_PARAMETER: int = 1
-    CAPTCHA_GAME_MAX_PARAMETER: int = 20
     try:
         setup_parameter = int(message.text)
         if setup_parameter < CAPTCHA_GAME_MIN_PARAMETER or setup_parameter > CAPTCHA_GAME_MAX_PARAMETER:
