@@ -593,11 +593,7 @@ async def cmd_reg(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.message(F.text.lower() == '📋 просмотр регистраций')
-@router.message(Command('view'))
-@decorators.user_exists_required
-@decorators.user_in_group_required
-async def cmd_view(message: Message, state: FSMContext) -> None:
+async def prepare_info_for_managing_queues(message: Message, state: FSMContext, old_page: int = 0) -> None:
     output_message = await queuesdb.get_info_about_user_participation_in_queues(user_id=message.from_user.id)
 
     status_code, queues_info_ids = \
@@ -632,7 +628,12 @@ async def cmd_view(message: Message, state: FSMContext) -> None:
     markups, quantity_of_pages = \
         await reply_markups.parse_some_information_to_make_easy_navigation(tuple(info_in_buttons), 2)
 
-    now_page = 0
+    if old_page > quantity_of_pages:
+        now_page = quantity_of_pages - 1
+    elif old_page < 0:
+        now_page = 0
+    else:
+        now_page = old_page
 
     await state.set_state(GeneralStatesGroup.queues_viewing)
 
@@ -644,6 +645,14 @@ async def cmd_view(message: Message, state: FSMContext) -> None:
         parse_mode='HTML',
         reply_markup=markups[now_page]
     )
+
+
+@router.message(F.text.lower() == '📋 просмотр регистраций')
+@router.message(Command('view'))
+@decorators.user_exists_required
+@decorators.user_in_group_required
+async def cmd_view(message: Message, state: FSMContext) -> None:
+    await prepare_info_for_managing_queues(message, state)
 
 
 @router.message(F.text.lower() == '🔃 поменяться местами')
