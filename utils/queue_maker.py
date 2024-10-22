@@ -1,5 +1,6 @@
 import asyncio
 from datetime import time, datetime, timedelta
+from enum import member
 
 from utils.general_usage_funcs import get_day_by_num
 import db.queues_info_table_usage as queues_info_db
@@ -92,6 +93,9 @@ async def notify_members_about_queues(group_id: int, subgroup_id, text: str, del
             text += ' - вся группа'
         else:
             members_ids = await get_members_by_group_id_and_subgroup_id(group_id=group_id, subgroup_id=subgroup_id)
+            members_ids_with_subgroup_0 = await get_members_by_group_id_and_subgroup_id(group_id=group_id, subgroup_id=0)
+
+            members_ids = members_ids + members_ids_with_subgroup_0
             text += f' - {subgroup_id} подгруппа'
 
         for member_id in members_ids:
