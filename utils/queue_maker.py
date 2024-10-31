@@ -1,6 +1,5 @@
 import asyncio
 from datetime import time, datetime, timedelta
-from enum import member
 
 from utils.general_usage_funcs import get_day_by_num
 import db.queues_info_table_usage as queues_info_db
@@ -55,7 +54,7 @@ async def remind_about_prerelease(time_to_release: time):
 
 
 async def release_queues():
-    status_code, info_about_users_to_notify = await queues_info_db.release_queues()
+    status_code = await queues_info_db.simple_release_queues()
 
     if status_code not in [sc.OPERATION_SUCCESS, sc.NO_QUEUES_IN_PRERELEASE]:
         await NotifyManager.notify_admins(
@@ -63,16 +62,24 @@ async def release_queues():
         )
         return
 
-    for info in info_about_users_to_notify:
-        subject = info[2]
-        lesson_type = info[3]
-        day_of_week = await get_day_by_num(info[4])
 
-        await notify_members_about_queues(
-            group_id=info[0],
-            subgroup_id=info[1],
-            text=f'[РЕЛИЗ] Открыта регистрация на очередь: {subject} [{lesson_type}] - {day_of_week}'
-        )
+async def notify_about_release(time_to_release: time):
+    status_code, queues_info = await queues_info_db.get_release_queues_info()
+
+    if status_code == sc.OPERATION_SUCCESS:
+        for info in queues_info:
+            group_id = info[0]
+            subject = info[1]
+            lesson_type = info[2]
+            subgroup_id = info[3]
+            day_of_week = await get_day_by_num(info[4])
+
+            await notify_members_about_queues(
+                group_id=group_id,
+                subgroup_id=subgroup_id,
+                text=f'[РЕЛИЗ] В {time_to_release} была открыта регистрация на очередь: {subject} '
+                     f'[{lesson_type}] - {day_of_week}'
+            )
 
 
 async def obsolete_queues():
@@ -114,10 +121,11 @@ async def notify_members_about_queues(group_id: int, subgroup_id, text: str, del
 
 
 async def timer():
-    time_to_prerelease = '19:0:0'
-    time_to_remind = '19:50:0'
-    time_to_release = '20:0:0'
-    time_to_obsolete = '22:0:0'
+    time_to_prerelease = '18:0:0'
+    time_to_remind = '18:50:0'
+    time_to_release = '19:0:0'
+    time_to_notify_about_release = '19:5:0'
+    time_to_obsolete = '21:0:0'
     time_range: int = 5
 
     dt = datetime.strptime(time_to_prerelease, '%H:%M:%S')
@@ -132,7 +140,11 @@ async def timer():
     time_to_release = dt.time()
     time_to_release_range = (dt + timedelta(seconds=time_range)).time()
 
-    notify_release_time = (dt + timedelta(hours=1)).time()
+    notify_release_time = (dt + timedelta(hours=2)).time()
+
+    dt = datetime.strptime(time_to_notify_about_release, '%H:%M:%S')
+    time_to_notify_about_about_release = dt.time()
+    time_to_notify_about_about_release_range = (dt + timedelta(seconds=time_range)).time()
 
     dt = datetime.strptime(time_to_obsolete, '%H:%M:%S')
     time_to_obsolete = dt.time()
@@ -156,6 +168,10 @@ async def timer():
 
         elif time_to_remind <= now_time <= time_to_remind_range:
             await remind_about_prerelease(notify_release_time)
+            await asyncio.sleep(time_range * 2)
+
+        elif time_to_notify_about_about_release <= now_time <= time_to_notify_about_about_release_range:
+            await notify_about_release(notify_release_time)
             await asyncio.sleep(time_range * 2)
 
         await asyncio.sleep(1)
