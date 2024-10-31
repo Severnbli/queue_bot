@@ -54,6 +54,17 @@ async def release_queues():
     return sc.OPERATION_SUCCESS, info_about_users
 
 
+async def simple_release_queues() -> int:
+    await cur.execute('UPDATE queues_info '
+                      "SET status = 'release' "
+                      "WHERE status = 'prerelease'")
+
+    if not await try_commit():
+        return sc.DB_ERROR
+
+    return sc.OPERATION_SUCCESS
+
+
 async def obsolete_queues_():
     await cur.execute('UPDATE queues_info '
                       "SET status = 'obsolete' "
