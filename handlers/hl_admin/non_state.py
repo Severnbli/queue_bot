@@ -5,8 +5,8 @@ from aiogram.types import Message
 
 import db.reports_table_usage as reportsdb
 from fsm.general_states import GeneralStatesGroup
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
+from utils.status_codes import StatusCode as sc
+from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
 
 
@@ -38,4 +38,13 @@ async def cmd_areport(message: Message, state: FSMContext):
     await message.answer(
         text='Выбери репорт для формирования ответа.',
         reply_markup=markups[now_page]
+    )
+
+
+@router.message(Command('say'))
+async def cmd_say(message: Message, state: FSMContext):
+    await state.set_state(GeneralStatesGroup.say_input)
+    await message.answer(
+        text='Отправь сообщение, которое хочешь разослать всем пользователям.',
+        reply_markup=await reply_markups.get_cancel_keyboard()
     )

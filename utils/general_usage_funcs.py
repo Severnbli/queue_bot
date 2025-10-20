@@ -9,8 +9,7 @@ import aiohttp
 from datetime import datetime, timedelta
 from aiogram.types import Message, ReplyKeyboardMarkup
 
-from status_codes import StatusCode as sc
-from configs import token
+from utils.status_codes import StatusCode as sc
 
 
 async def get_random_str(length: int) -> str:
@@ -47,16 +46,6 @@ async def get_image_captcha(length: int) -> tuple[BufferedInputFile, str]:
     captcha_image = BufferedInputFile(file=data.read(), filename='captcha.png')
     return captcha_image, captcha_text
 
-
-async def notify_user_(user_id: int, text: str):
-    async with aiohttp.ClientSession() as session:
-        url_to_send_message = f'https://api.telegram.org/bot{token}/sendMessage'
-        async with session.post(url=f'{url_to_send_message}?chat_id={user_id}&text={text}') as response:
-            if response.status != 200:
-                return sc.USER_NOTIFY_ERROR
-    return sc.USER_NOTIFY_SUCCESSFULLY
-
-
 async def prepare_tuple_info_for_buttons(content: tuple) -> tuple: # In one tuple another tuple
     iterator = 0
     prepared_info = []
@@ -71,21 +60,32 @@ async def prepare_tuple_info_for_buttons(content: tuple) -> tuple: # In one tupl
     return tuple(prepared_info)
 
 
-async def prepare_all_members_info_to_pretty_form(members: list) -> tuple:
-    prepared_members = []
+async def prepare_all_members_info_to_pretty_form(members: list) -> [list, list]:
+    # List content: ['position nick username', ]
+    info_for_buttons = []
+
+    # List content: [[nick, user_id], ]
+    info_with_members_users_ids = []
+
     for member in members:
-        info_about_member = []
+
         if member[3] == 'leader':
             rang = '👑 '
         elif member[3] == 'depute':
             rang = '🎖 '
         else:
             rang = ''
-        info_about_member.append(f'{rang}{str(member[0])}')
+
+        info_about_member = f'{rang}{str(member[0])}'
+
         if member[1] is not None:
-            info_about_member.append(f'@{str(member[1])}')
-        prepared_members.append(info_about_member)
-    return tuple(prepared_members)
+            info_about_member += f' {str(member[1])}'
+
+        info_with_members_users_ids.append([member[0], member[2]])
+
+        info_for_buttons.append(info_about_member)
+
+    return info_for_buttons, info_with_members_users_ids
 
 
 async def get_num_of_day(day: str) -> int:

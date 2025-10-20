@@ -11,14 +11,17 @@ import db.users_table_usage as usersdb
 import db.queues_table_usage as queuesdb
 import db.queues_info_table_usage as queues_info_db
 import db.trades_table_usage as tradesdb
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
+from handlers.hl_general.non_state import prepare_info_for_managing_queues, prepare_info_for_managing_members
+from utils.status_codes import StatusCode as sc
+from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
-import decorators
-import schedule
-from general_usage_funcs import make_easy_navigation
+from utils import schedule, decorators
+from utils.general_usage_funcs import make_easy_navigation, get_image_captcha
 
 router = Router()
+
+CAPTCHA_GAME_MIN_PARAMETER: int = 1
+CAPTCHA_GAME_MAX_PARAMETER: int = 20
 
 
 @router.message(F.text.lower() == '⛔️ выход / отмена')
@@ -41,6 +44,8 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
                 markup = await reply_markups.get_manage_queues_keyboard()
             elif back_step == 'queues_menu':
                 markup = await reply_markups.get_queues_menu_keyboard()
+            elif back_step == 'games_menu':
+                markup = await reply_markups.get_games_keyboard()
             else:
                 markup = await reply_markups.get_main_keyboard()
         else:
@@ -437,116 +442,182 @@ async def del_group_accepting(message: Message, state: FSMContext) -> None:
         await message.answer('Я хз, что ты написал.\n\nПопробуй хомяка, то есть кнопки, потапать.')
 
 
-# @router.message(GeneralStatesGroup.member_select, F.text)
-# @decorators.user_exists_required
-# @decorators.user_in_group_required
-# @decorators.user_group_leader_or_depute_required
-# async def manage_members(message: Message, state: FSMContext) -> None:
-#     user_data = await state.get_data()
-#     markups = user_data.get('markups')
-#     now_page = user_data.get('now_page')
-#     quantity_of_pages = user_data.get('quantity_of_pages')
-#     nicks = user_data.get('nicks')
-#     if message.forward_from:
-#         status_code, expected_nick = await usersdb.get_nick(message.forward_from.id)
-#         if status_code != sc.OPERATION_SUCCESS:
-#             await message.answer(
-#                 text='Произошла проблема при определении ника автора сообщения: '
-#                      f'{await get_message_about_status_code(status_code)}.'
-#             )
-#             return
-#     else:
-#         parsed_entered_info = message.text.split(' ')
-#         if len(parsed_entered_info) > 1:
-#             expected_nick = parsed_entered_info[1]
-#         else:
-#             expected_nick = parsed_entered_info[0]
-#     if message.text.lower() == '◀️ назад':
-#         if now_page == 0:
-#             await message.answer(
-#                 text='Ты сейчас находишься на первой странице.'
-#             )
-#             return
-#         now_page -= 1
-#         await message.answer(
-#             text=f'Выбрана <b>{now_page + 1}</b> страница. Всего страниц: <b>{quantity_of_pages}</b>.',
-#             parse_mode='HTML',
-#             reply_markup=markups[now_page]
-#         )
-#     elif message.text.lower() == '▶️ вперёд':
-#         if now_page == quantity_of_pages - 1:
-#             await message.answer(
-#                 text='Ты сейчас находишься на последней странице.'
-#             )
-#             return
-#         now_page += 1
-#         await message.answer99(
-#             text=f'Выбрана <b>{now_page + 1}</b> страница. Всего страниц: <b>{quantity_of_pages}</b>.',
-#             parse_mode='HTML',
-#             reply_markup=markups[now_page]
-#         )
-#     elif expected_nick is not None and expected_nick in nicks:
-#         nick = expected_nick
-#         await state.update_data(nick=nick, now_page=0)
-#         await state.set_state(GeneralStatesGroup.manage_members)
-#         status_code, position = await membersdb.get_user_position_in_group(message.from_user.id)
-#         await message.answer(
-#             text=f'Выбран участник с ником <b>{nick}</b>. Выбери действие, которое хочешь над ним совершить.',
-#             parse_mode='HTML',
-#             reply_markup=await reply_markups.get_manage_group_keyboard(position)
-#         )
-#     else:
-#         await message.answer('Я хз, что ты написал.\n\nПопробуй хомяка, то есть кнопки, потапать.')
+async def checking_members_compliance_with_the_edit_condition(message: Message, affected_user_id: int) -> int:
+    is_users_in_same_group = await membersdb.is_users_in_same_group_(
+        user1_id=affected_user_id,
+        user2_id=message.from_user.id
+    )
+
+    if not is_users_in_same_group:
+        await message.answer(
+            text='<b>Обнаружилась ошибка</b>. Возможные причины:\n'
+                 '<b>1</b>. Редактируемый пользователь находится в иной подгруппе.\n'
+                 '<b>2</b>. Редактируемого пользователя не существует.\n'
+                 '<b>3</b>. Редактируемый пользователь вышел из группы / был забанен во время ваших манипуляций.',
+            parse_mode='HTML'
+        )
+        return sc.STOP
+
+    status_code, affected_user_position = await membersdb.get_user_position_in_group(affected_user_id)
+    if status_code != sc.OPERATION_SUCCESS:
+        await message.answer(
+            text='Произошла ошибка при определении роли задействованного пользователя: '
+                 f'{get_message_about_status_code(status_code)}.'
+        )
+        return sc.STOP
+
+    status_code, user_position = await membersdb.get_user_position_in_group(message.from_user.id)
+    if status_code != sc.OPERATION_SUCCESS:
+        await message.answer(
+            text='Произошла ошибка при определении твоей роли: '
+                 f'{get_message_about_status_code(status_code)}.'
+        )
+        return sc.STOP
+
+    if affected_user_position == 'leader':
+        await message.answer(
+            text='Ты не можешь совершать действия над лидером.'
+        )
+        return sc.STOP
+
+    if user_position == affected_user_position:
+        await message.answer(
+            text='Ты не можешь совершать действия с равным себе пользователем.'
+        )
+        return sc.STOP
+
+    return sc.OPERATION_SUCCESS
 
 
-# @router.message(GeneralStatesGroup.manage_members, F.text)
-# @decorators.user_exists_required
-# @decorators.user_in_group_required
-# @decorators.user_group_leader_or_depute_required
-# async def member_edit(message: Message, state: FSMContext) -> None:
-#     user_data = await state.get_data()
-#     markups = user_data.get('markups')
-#     nick = user_data.get('nick')
-#     status_code, affected_user_id = await usersdb.get_user_id_by_nick(nick)
-#     if status_code != sc.OPERATION_SUCCESS:
-#         await state.set_state(GeneralStatesGroup.manage_members)
-#         await message.answer(
-#             text='На этапе определения данных пользователя, с которым производятся манипуляции, произошла ошибка: '
-#                  f'{await get_message_about_status_code(status_code)}.',
-#             reply_markup=markups[0]
-#         )
-#         return
-#     is_users_in_same_group = await membersdb.is_users_in_same_group_(
-#         user1_id=affected_user_id,
-#         user2_id=message.from_user.id
-#     )
-#     if not is_users_in_same_group:
-#         await state.set_state(GeneralStatesGroup.manage_members)
-#         await message.answer(
-#             text = 'Обнаружилась ошибка. Возможные причины:\n'
-#                    '1. Редактируемый пользователь находится в иной подгруппе.\n'
-#                    '2. Редактируемого пользователя не существует.\n'
-#                    '3. Редактируемый пользователь вышел из группы / был забанен во время ваших манипуляций.',
-#             reply_markup = markups[0]
-#         )
-#         return
-#     status_code, affected_user_position = await membersdb.get_user_position_in_group(affected_user_id)
-#     status_code, user_position = await membersdb.get_user_position_in_group(message.from_user.id)
-#     if user_position not in ['leader', 'depute'] or affected_user_position not in ['leader', 'depute', 'default']:
-#         await state.set_state(GeneralStatesGroup.manage_members)
-#         await message.answer(
-#             text='Произошла ошибка. Возможные причины:\n'
-#                  '1. Не определена роль редактируемого пользователя.\n'
-#                  '2. Ваша роль в группе недостаточна для редактирования других пользователей.',
-#             reply_markup = markups[0]
-#         )
-#         return
-#     if message.text.lower() == '🏴 добавление в чс':
-#         if user_position == 'depute' and affected_user_position in ['leader', 'depute']:
-#             await state.set_state(GeneralStatesGroup.manage_members)
-#             await message.answer(
-#                 text='Ты не можешь добавить в чс этого пользователя'
-#             )
+@router.message(GeneralStatesGroup.member_select, F.text)
+@decorators.user_exists_required
+@decorators.user_in_group_required
+@decorators.user_group_leader_or_depute_required
+async def member_select(message: Message, state: FSMContext) -> None:
+    user_data = await state.get_data()
+    old_page = user_data['now_page']
+
+    status = await prepare_info_for_managing_members(message, state, old_page)
+    if status != sc.OPERATION_SUCCESS:
+        return
+
+    user_data = await state.get_data()
+
+    now_page = user_data['now_page']
+    markups = user_data['markups']
+    quantity_of_pages = user_data['quantity_of_pages']
+
+    status_code = await make_easy_navigation(
+        message=message,
+        now_page=now_page,
+        quantity_of_pages=quantity_of_pages,
+        markups=markups,
+        state=state
+    )
+
+    if status_code == sc.NOTHING_NEEDED_TO_DO:
+        return
+
+    elif status_code == sc.NEEDED_TEXT_PROCESSING:
+        if message.forward_from:
+            status_code, expected_nick = await usersdb.get_nick(message.forward_from.id)
+
+            if status_code != sc.OPERATION_SUCCESS:
+                await message.answer(
+                    text='Произошла проблема при определении ника автора сообщения: '
+                         f'{await get_message_about_status_code(status_code)}.'
+                )
+                return
+
+        expected_nick = message.text
+
+        info_in_buttons = user_data['info_in_buttons']
+
+        if expected_nick in info_in_buttons:
+            for element in ['👑 ', '🎖 ']:
+                expected_nick = expected_nick.replace(element, '')
+            expected_nick = expected_nick.split(' ')[0]
+
+        info_with_members_users_ids = user_data['info_with_members_users_ids']
+
+        user_id: int = -1
+
+        for info in info_with_members_users_ids:
+            if expected_nick == info[0]:
+                user_id = info[1]
+
+        if user_id < 0:
+            await message.answer(
+                text='Пользователь с введённым ником не существует или не состоит в той же группе, что и ты.'
+            )
+            return
+
+        if user_id == message.from_user.id:
+            await message.answer(
+                text='Ты не можешь совершать действия над самим собой.'
+            )
+            return
+
+        status_code = await checking_members_compliance_with_the_edit_condition(message, user_id)
+        if status_code != sc.OPERATION_SUCCESS:
+            return
+
+        await state.update_data(user_id=user_id)
+        await state.set_state(GeneralStatesGroup.manage_member)
+
+        status_code, position = await membersdb.get_user_position_in_group(message.from_user.id)
+        await message.answer(
+            text=f'Выбран участник с ником <b>{expected_nick}</b>. Выбери действие, которое хочешь над ним совершить.',
+            parse_mode='HTML',
+            reply_markup=await reply_markups.get_manage_group_keyboard(position)
+        )
+    else:
+        await message.answer(
+            text=f'Непредвиденный статус-код: {await get_message_about_status_code(status_code)}.',
+        )
+
+
+@router.message(GeneralStatesGroup.manage_member, F.text)
+@decorators.user_exists_required
+@decorators.user_in_group_required
+@decorators.user_group_leader_or_depute_required
+async def member_edit(message: Message, state: FSMContext) -> None:
+    user_data = await state.get_data()
+    affected_user_id = user_data.get('user_id')
+    old_page = user_data['now_page']
+
+    status_code = await checking_members_compliance_with_the_edit_condition(message, affected_user_id)
+
+    if status_code != sc.OPERATION_SUCCESS:
+        await prepare_info_for_managing_members(message, state, old_page)
+        return
+
+    status_code, user_position = await membersdb.get_user_position_in_group(message.from_user.id)
+    if status_code != sc.OPERATION_SUCCESS:
+        await message.answer(
+            text='Произошла ошибка при определении твоей роли: '
+                 f'{get_message_about_status_code(status_code)}.'
+        )
+        return
+
+    message_text = message.text.lower()
+    if message_text == '🏴 добавление в чс':
+        pass
+    elif message_text == '◀️ к выбору ника':
+        await prepare_info_for_managing_members(message, state, old_page)
+    else:
+        if user_position != 'leader':
+            await message.answer(
+                text='Ты не можешь совершить этой действие.'
+            )
+            return
+
+        if message_text == '📈 повысить до заместителя':
+            pass
+        elif message_text == '📉 снять с заместителя':
+            pass
+        elif message_text == '👑 передача лидерства':
+            pass
 
 
 @router.message(GeneralStatesGroup.source_choose)
@@ -696,14 +767,51 @@ async def queue_choose(message: Message, state: FSMContext) -> None:
         )
 
 
+async def send_message_about_queue(message: Message, state: FSMContext, queue_info_id: int) -> None:
+    status_code, header = await queues_info_db.get_information_to_make_header(queues_info_id=queue_info_id)
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+        await message.answer(
+            text='При подгрузке информации об очереди произошла ошибка: '
+                 f'{await get_message_about_status_code(status_code)}.',
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
+        )
+        return
+    status_code, participants = await queuesdb.get_information_users_participate_queue(queue_info_id=queue_info_id)
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+        await message.answer(
+            text='При подгрузке информации об очереди произошла ошибка: '
+                 f'{await get_message_about_status_code(status_code)}.',
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
+        )
+        return
+    await message.answer(
+        text=f'{header}\n\n{participants}',
+        parse_mode='HTML',
+        disable_web_page_preview=True
+    )
+
+
 @router.message(GeneralStatesGroup.queues_viewing, F.text)
 @decorators.user_exists_required
 @decorators.user_in_group_required
 async def queues_viewing(message: Message, state: FSMContext) -> None:
     user_data = await state.get_data()
+
+    old_page = user_data['now_page']
+
+    status_code = await prepare_info_for_managing_queues(message, state, old_page)
+
+    if status_code != sc.OPERATION_SUCCESS:
+        return
+
+    user_data = await state.get_data()
+
     now_page = user_data['now_page']
     markups = user_data['markups']
     quantity_of_pages = user_data['quantity_of_pages']
+
     status_code = await make_easy_navigation(
         message=message,
         now_page=now_page,
@@ -711,42 +819,110 @@ async def queues_viewing(message: Message, state: FSMContext) -> None:
         markups=markups,
         state=state
     )
+
     if status_code == sc.NOTHING_NEEDED_TO_DO:
         return
     elif status_code == sc.NEEDED_TEXT_PROCESSING:
         info_in_buttons = user_data['info_in_buttons']
+
         if message.text not in info_in_buttons:
             await message.answer(
                 text='Я хз, что ты написал.\n\nПопробуй хомяка, то есть кнопки, потапать.'
             )
             return
-        split_message = message.text.split(' ')
-        queue_info_id = int(split_message[-1])
-        status_code, header = await queues_info_db.get_information_to_make_header(queues_info_id=queue_info_id)
-        if status_code != sc.OPERATION_SUCCESS:
-            await state.clear()
+
+        if message.text == '📦 Информация о всех':
+            for info_in_button in info_in_buttons[1:]:
+                queues_info_id = info_in_button.split(' ')
+                queues_info_id = int(queues_info_id[-1])
+                await send_message_about_queue(message, state, queues_info_id)
+        else:
+            queue_info_id = message.text.split(' ')
+            queue_info_id = int(queue_info_id[-1])
+
+            await state.set_state(GeneralStatesGroup.queue_edit_note)
+            await state.update_data(queue_info_id=queue_info_id)
+
+            await send_message_about_queue(message, state, queue_info_id)
             await message.answer(
-                text='При подгрузке информации об очереди произошла ошибка: '
-                     f'{await get_message_about_status_code(status_code)}.',
-                reply_markup=await reply_markups.get_queues_menu_keyboard()
+                text='Меню редактирования заметок вызвано успешно. '
+                     'Хочешь ли ты редактировать свою заметку для этой очереди?',
+                reply_markup=await reply_markups.get_edit_note_keyboard()
             )
-            return
-        status_code, participants = await queuesdb.get_information_users_participate_queue(queue_info_id=queue_info_id)
-        if status_code != sc.OPERATION_SUCCESS:
-            await state.clear()
-            await message.answer(
-                text='При подгрузке информации об очереди произошла ошибка: '
-                     f'{await get_message_about_status_code(status_code)}.',
-                reply_markup=await reply_markups.get_queues_menu_keyboard()
-            )
-            return
-        await message.answer(
-            text=f'{header}\n\n{participants}',
-            parse_mode='HTML'
-        )
     else:
         await message.answer(
             text=f'Непредвиденный статус-код: {await get_message_about_status_code(status_code)}.',
+        )
+
+
+@router.message(GeneralStatesGroup.queue_edit_note, F.text)
+@decorators.user_exists_required
+@decorators.user_in_group_required
+async def queue_edit_note(message: Message, state: FSMContext) -> None:
+    user_data = await state.get_data()
+
+    if message.text.lower() == '◀️ к просмотру регистраций':
+        old_page = user_data['now_page']
+
+        await prepare_info_for_managing_queues(message, state, old_page)
+
+        return
+    elif message.text.lower() == '❌ удалить заметку':
+        is_success = await queuesdb.update_user_note_for_queue_(
+            user_id=message.from_user.id,
+            queue_info_id=user_data['queue_info_id'],
+            note=None
+        )
+
+        if is_success:
+            await message.answer(
+                text='Твоя заметка удалена успешно.'
+            )
+            await send_message_about_queue(message, state, user_data['queue_info_id'])
+        else:
+            await message.answer(
+                text='Я не смог удалить твою заметку. Произошла ошибка при обращении к БД.'
+            )
+        return
+    elif message.text.lower() == '✏️ редактировать / создать заметку':
+        await state.set_state(GeneralStatesGroup.queue_note_input)
+
+        await message.answer(
+            text='Напиши заметку, которую ты бы хотел оставить (не более 20 символов).',
+            reply_markup=await reply_markups.get_cancel_keyboard()
+        )
+
+
+@router.message(GeneralStatesGroup.queue_note_input, F.text)
+@decorators.user_exists_required
+@decorators.user_in_group_required
+async def queue_note_input(message: Message, state: FSMContext) -> None:
+    note = message.text
+
+    if len(note) > 20:
+        await message.answer(
+            text=f'Заметка слишком длинная ({len(note)} символов). Попробуй придумать нечто иное.'
+        )
+        return
+
+    user_data = await state.get_data()
+
+    is_success = await queuesdb.update_user_note_for_queue_(
+        user_id=message.from_user.id,
+        queue_info_id=user_data['queue_info_id'],
+        note=note
+    )
+
+    if is_success:
+        await state.set_state(GeneralStatesGroup.queue_edit_note)
+        await message.answer(
+            text='Заметка успешно установлена!',
+            reply_markup=await reply_markups.get_edit_note_keyboard()
+        )
+        await send_message_about_queue(message, state, user_data['queue_info_id'])
+    else:
+        await message.answer(
+            text='Заметку установить не вышло. Попробуй снова.'
         )
 
 
@@ -787,22 +963,86 @@ async def trade_info_input(message: Message, state: FSMContext) -> None:
     )
 
 
+@router.message(GeneralStatesGroup.captcha_game_setup, F.text)
+@decorators.user_exists_required
+async def captcha_game_setup(message: Message, state: FSMContext) -> None:
+    try:
+        setup_parameter = int(message.text)
+        if setup_parameter < CAPTCHA_GAME_MIN_PARAMETER or setup_parameter > CAPTCHA_GAME_MAX_PARAMETER:
+            await message.answer(
+                text=f'Введённое число не подходит для игры. Задай число в пределе от {CAPTCHA_GAME_MIN_PARAMETER} '
+                     f'до {CAPTCHA_GAME_MAX_PARAMETER}.'
+            )
+            return
+    except ValueError:
+        await message.answer(
+            text='Введёный параметр не годится для игры. Попробуй придумать другой.'
+        )
+        return
+    captcha_image, captcha_text = await get_image_captcha(setup_parameter)
+    await state.set_state(GeneralStatesGroup.captcha_game_process)
+    await state.update_data(setup_parameter=setup_parameter, captcha_text=captcha_text, captcha_try=0)
+    await message.answer_photo(
+        photo=captcha_image,
+        caption='Попробуй отгадать каптчу!',
+        reply_markup=await reply_markups.get_cancel_keyboard()
+    )
+
+
+@router.message(GeneralStatesGroup.captcha_game_process, F.text)
+@decorators.user_exists_required
+async def captcha_game_process(message: Message, state: FSMContext) -> None:
+    user_data = await state.get_data()
+    captcha_text = user_data['captcha_text']
+    if message.text != captcha_text:
+        captcha_try = user_data['captcha_try']
+        captcha_try += 1
+        if captcha_try == 3:
+            setup_parameter = user_data['setup_parameter']
+            captcha_image, captcha_text = await get_image_captcha(setup_parameter)
+            await state.update_data(captcha_text=captcha_text, captcha_try=0)
+            await message.answer_photo(
+                photo=captcha_image,
+                caption='Ты исчерпал три попытки. Держи новую каптчу!',
+                reply_markup=await reply_markups.get_cancel_keyboard()
+            )
+            return
+        await state.update_data(captcha_try=captcha_try)
+        await message.answer(
+            text=f'У тебя ещё {3 - captcha_try} попытки. У тебя получится!'
+        )
+        return
+    else:
+        setup_parameter = user_data['setup_parameter']
+        captcha_image, captcha_text = await get_image_captcha(setup_parameter)
+        await state.update_data(captcha_text=captcha_text, captcha_try=0)
+        await message.answer_photo(
+            photo=captcha_image,
+            caption='Ты разгадал каптчу! Держи новую!',
+            reply_markup=await reply_markups.get_cancel_keyboard()
+        )
+        return
+
+
 @router.message(GeneralStatesGroup.nick_accepting)
 @router.message(GeneralStatesGroup.report_accepting)
 @router.message(GeneralStatesGroup.subgroup_input)
 @router.message(GeneralStatesGroup.quit_accepting)
 @router.message(GeneralStatesGroup.del_group_accepting)
 @router.message(GeneralStatesGroup.member_select)
-@router.message(GeneralStatesGroup.manage_members)
+@router.message(GeneralStatesGroup.manage_member)
 @router.message(GeneralStatesGroup.source_choose)
 @router.message(GeneralStatesGroup.group_source_accepting)
 @router.message(GeneralStatesGroup.queue_choose)
 @router.message(GeneralStatesGroup.queues_viewing)
+@router.message(GeneralStatesGroup.queue_edit_note)
 async def tap_on_button_pls(message: Message) -> None:
     await message.reply('Для свершения какого-либо действия требуется твоё нажатие на представленные кнопки.'
                         '\n\nЕсли передумал, то /cancel.')
 
 
+@router.message(GeneralStatesGroup.captcha_game_setup)
+@router.message(GeneralStatesGroup.captcha_game_process)
 @router.message(GeneralStatesGroup.nick_input)
 @router.message(GeneralStatesGroup.captcha)
 @router.message(GeneralStatesGroup.report_input)
@@ -810,6 +1050,7 @@ async def tap_on_button_pls(message: Message) -> None:
 @router.message(GeneralStatesGroup.key_input)
 @router.message(GeneralStatesGroup.group_name_input)
 @router.message(GeneralStatesGroup.trade_info_input)
+@router.message(GeneralStatesGroup.queue_note_input)
 async def needed_text(message: Message) -> None:
     await message.reply('Отлично. Но я просил отправить мне текст.\n\nПопробуй снова или отмени действие: /cancel.')
 

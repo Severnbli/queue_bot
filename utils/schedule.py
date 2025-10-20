@@ -1,9 +1,9 @@
 import json
 import aiohttp
 
-from status_codes import StatusCode as sc
+from utils.status_codes import StatusCode as sc
 import db.schedules_table_usage as schedulesdb
-from general_usage_funcs import get_num_of_day
+from utils.general_usage_funcs import get_num_of_day
 
 
 async def get_schedule_by_request_(source: str, source_number: str):

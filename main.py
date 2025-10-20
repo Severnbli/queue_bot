@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 from aiogram import Bot, Dispatcher
 
 from fsm import general_states
@@ -7,11 +8,12 @@ from configs import token
 import handlers.hl_general.root
 import handlers.hl_admin.root
 
-from queue_maker import timer
+from utils.queue_maker import timer
+from utils.message.NotifyManager import NotifyManager
 
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+
     bot = Bot(token=token)
     dp = Dispatcher(storage=general_states.storage)
 
@@ -21,11 +23,25 @@ async def main():
 
 
 async def parse_processes():
-    await asyncio.gather(main(), timer())
+    try:
+        async with asyncio.TaskGroup() as tg:
+            bot_task = tg.create_task(main())
+            timer_task = tg.create_task(timer())
+            notify_task = tg.create_task(NotifyManager.send_messages())
+
+    except* Exception as e:
+        logging.error(f"An error occurred: {e}")
+
+    if bot_task.done() and timer_task.done():
+        logging.info(f"Async tasks have completed: {bot_task.result()}, {timer_task.result()}, "
+                     f"{notify_task.result()}")
+    else:
+        logging.warning("One or more tasks did not complete successfully.")
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     try:
         asyncio.run(parse_processes())
     except KeyboardInterrupt:
-        print('Interrupted')
+        logging.error('Interrupted')

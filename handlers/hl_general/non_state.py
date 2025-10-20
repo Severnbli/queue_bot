@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter
-from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile, ReplyKeyboardMarkup
+from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile
 from aiogram.fsm.context import FSMContext
 import os
 import random
@@ -12,12 +12,12 @@ import db.groups_table_usage as groupsdb
 import db.queues_info_table_usage as queues_info_db
 import db.queues_table_usage as queuesdb
 import db.trades_table_usage as tradesdb
-from status_codes import StatusCode as sc, get_message_about_status_code
-from status_codes import get_message_about_error
-from general_usage_funcs import (get_image_captcha, prepare_tuple_info_for_buttons,
-                                 prepare_all_members_info_to_pretty_form)
+from utils.status_codes import StatusCode as sc, get_message_about_status_code
+from utils.status_codes import get_message_about_error
+from utils.general_usage_funcs import (get_image_captcha, prepare_all_members_info_to_pretty_form,
+                                       prepare_tuple_info_for_buttons)
 from markups import reply_markups
-import decorators
+from utils import decorators
 
 router = Router()
 router.message.filter(StateFilter(None))
@@ -65,23 +65,39 @@ async def cmd_main_menu(message: Message):
 @router.message(Command('start'))
 async def cmd_start(message: Message, state: FSMContext) -> None:
     is_user_exist = await usersdb.is_user_exist_(user_id=message.from_user.id)
+
+    quantity_of_total_users = await usersdb.get_quantity_of_total_users_()
+
     if is_user_exist:
         status_code, nick = await usersdb.get_nick(user_id=message.from_user.id)
+
         if status_code != sc.OPERATION_SUCCESS:
             output_message = await get_message_about_error(status_code=status_code)
+
         else:
-            output_message = f'Привет, <b>{nick}</b>.\n\nСписок команд: /help.'
+            output_message = (f'Привет, <b>{nick}</b>. '
+                              f'Нас уже <b>{quantity_of_total_users}</b>!'
+                              f'\n\nСписок команд: /help.')
+
         await message.answer(
-            output_message,
+            text=output_message,
             parse_mode='HTML',
             reply_markup=await reply_markups.get_main_keyboard()
         )
+
     else:
         await state.set_state(GeneralStatesGroup.nick_input)
         await state.update_data(non_stop=True)
-        output_message = ('Я бот для создания очередей. Список команд: /help.'
-                      '\n\nКак я могу тебя называть? Ты всегда сможешь сменить ник с помощью /nick.')
-        await message.answer(output_message, reply_markup=ReplyKeyboardRemove())
+
+        output_message = (f'Я бот для создания очередей. Список команд: /help.'
+                          f'\n\nПрисоединяйся, нас уже <b>{quantity_of_total_users}</b>!'
+                          f'\n\nКак я могу тебя называть? Ты всегда сможешь сменить ник с помощью /nick.')
+
+        await message.answer(
+            text=output_message,
+            parse_mode='HTML',
+            reply_markup=ReplyKeyboardRemove()
+        )
 
 
 @router.message(F.text.lower() == '⚡️ команды')
@@ -93,6 +109,7 @@ async def cmd_help(message: Message) -> None:
         '/cancel - отменить что-либо\n'
         '/report - написать админам (жалобы, предложения)\n'
         '/main_menu - вызов главного меню\n'
+        '/captcha_game - игра в каптчу\n'
         '\n<b>Взаимодействие с очередями</b>\n'
         '/queues - вызов меню очередей\n'
         '/reg - регистрация / отмена регистрации\n'
@@ -169,7 +186,8 @@ async def cmd_profile(message: Message) -> None:
         output_message = f'<b>Информация о тебе</b>\n\n{info_about_user}'
         await message.answer(
             output_message,
-            parse_mode='HTML'
+            parse_mode='HTML',
+            disable_web_page_preview=True
         )
     else:
         output_message = f'Я не смог найти информацию о тебе: {await get_message_about_status_code(status_code)}.'
@@ -325,7 +343,8 @@ async def cmd_group_info(message: Message) -> None:
     output_message = f'<b>Информация о группе</b>\n\n{info_about_group}'
     await message.answer(
         output_message,
-        parse_mode='HTML'
+        parse_mode='HTML',
+        disable_web_page_preview=True
     )
 
 
@@ -441,56 +460,70 @@ async def cmd_del_group(message: Message, state: FSMContext) -> None:
     )
 
 
+async def prepare_info_for_managing_members(message: Message, state: FSMContext, old_page: int = 0):
+    status_code, group_id = await membersdb.get_group_id_by_user_id(message.from_user.id)
+
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+
+        await message.answer(
+            text='Возникла ошибка при определении группы, в которой ты находишься: '
+                 f'{await get_message_about_status_code(status_code)}.'
+        )
+        return sc.STOP
+
+    status_code, members = await membersdb.get_all_members_of_group(group_id)
+
+    if status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+
+        await message.answer(
+            text='Возникла ошибка при выгрузке списка участников группы: '
+                 f'{await get_message_about_status_code(status_code)}.'
+        )
+        return sc.STOP
+
+    await state.set_state(GeneralStatesGroup.member_select)
+
+    info_in_buttons, info_with_members_users_ids = await prepare_all_members_info_to_pretty_form(members)
+
+    markups, quantity_of_pages = \
+        await reply_markups.parse_some_information_to_make_easy_navigation(info_in_buttons, 2)
+
+    if old_page > quantity_of_pages - 1:
+        now_page = quantity_of_pages - 1
+    elif old_page < 0:
+        now_page = 0
+    else:
+        now_page = old_page
+
+    await state.update_data(
+        info_in_buttons=info_in_buttons,
+        info_with_members_users_ids=info_with_members_users_ids,
+        markups=markups,
+        now_page=now_page,
+        quantity_of_pages=quantity_of_pages,
+        back_step='manage_group'
+    )
+
+    await message.answer(
+        text='Выбери участника группы для свершения действия над ним.\n\n'
+             'Ты также можешь самостоятельно ввести его ник или переслать любое его сообщение.\n\n'
+             f'Выбрана страница: <b>{now_page + 1}</b>. Всего страниц: <b>{quantity_of_pages}</b>.',
+        parse_mode='HTML',
+        reply_markup=markups[now_page]
+    )
+
+    return sc.OPERATION_SUCCESS
+
+
 @router.message(F.text.lower() == '⚙️ управление участниками')
 @router.message(Command('manage_members'))
 @decorators.user_exists_required
 @decorators.user_in_group_required
 @decorators.user_group_leader_or_depute_required
 async def cmd_manage_members(message: Message, state: FSMContext) -> None:
-    await message.answer(
-        text='Эта функция будет реализована в последующем.'
-    )
-    # status_code, group_id = await membersdb.get_group_id_by_user_id(message.from_user.id)
-    # if status_code != sc.OPERATION_SUCCESS:
-    #     await message.answer(
-    #         text='Возникла ошибка при определении группы, в которой ты находишься: '
-    #              f'{await get_message_about_status_code(status_code)}.'
-    #     )
-    #     return
-    # status_code, members = await membersdb.get_all_members_of_group(group_id)
-    # if status_code != sc.OPERATION_SUCCESS:
-    #     await message.answer(
-    #         text='Возникла ошибка при выгрузке списка участников группы: '
-    #              f'{await get_message_about_status_code(status_code)}.'
-    #     )
-    #     return
-    # status_code, nicks = await membersdb.get_all_nicks_by_group_id(group_id)
-    # if status_code != sc.OPERATION_SUCCESS:
-    #     await message.answer(
-    #         text='Возникла ошибка при выгрузке ников участников группы: '
-    #              f'{await get_message_about_status_code(status_code)}.'
-    #     )
-    #     return
-    # await state.set_state(GeneralStatesGroup.member_select)
-    # prepared_members = await prepare_all_members_info_to_pretty_form(members)
-    # prepared_info = await prepare_tuple_info_for_buttons(prepared_members)
-    # markups, quantity_of_pages = \
-    #     await reply_markups.parse_some_information_to_make_easy_navigation(prepared_info, 2)
-    # now_page = 0
-    # await state.update_data(
-    #     nicks=nicks,
-    #     markups=markups,
-    #     now_page=now_page,
-    #     quantity_of_pages=quantity_of_pages,
-    #     back_step='manage_group'
-    # )
-    # await message.answer(
-    #     text='Выбери участника группы для свершения действия над ним.\n\n'
-    #          'Ты также можешь самостоятельно ввести его ник или переслать любое его сообщение.\n\n'
-    #          f'Выбрана страница: <b>{now_page + 1}</b>. Всего страниц: <b>{quantity_of_pages}</b>.',
-    #     parse_mode='HTML',
-    #     reply_markup=markups[now_page]
-    # )
+    await prepare_info_for_managing_members(message, state)
 
 
 @router.message(F.text.lower() == '◀️ к настройкам очередей')
@@ -575,46 +608,77 @@ async def cmd_reg(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.message(F.text.lower() == '📋 просмотр регистраций')
-@router.message(Command('view'))
-@decorators.user_exists_required
-@decorators.user_in_group_required
-async def cmd_view(message: Message, state: FSMContext) -> None:
+async def prepare_info_for_managing_queues(message: Message, state: FSMContext, old_page: int = 0):
     output_message = await queuesdb.get_info_about_user_participation_in_queues(user_id=message.from_user.id)
+
     status_code, queues_info_ids = \
         await queuesdb.simple_get_queues_info_ids_which_user_participate(user_id=message.from_user.id)
+
     if status_code == sc.USER_NOT_PARTICIPATE_IN_ANY_QUEUES:
+        await state.clear()
+
         await message.answer(
-            output_message
+            text=output_message,
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
         )
-        return
+        return sc.STOP
+
     elif status_code != sc.OPERATION_SUCCESS:
+        await state.clear()
+
         await message.answer(
             text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
-                 f'{await get_message_about_status_code(status_code)}.'
+                 f'{await get_message_about_status_code(status_code)}.',
+            reply_markup=await reply_markups.get_queues_menu_keyboard()
         )
-        return
-    info_in_buttons = []
+        return sc.STOP
+
+    info_in_buttons = ['📦 Информация о всех']
+
     for queue_info_id in queues_info_ids:
         status_code, info_for_button = await queues_info_db.get_information_to_make_button(queue_info_id)
         if status_code != sc.OPERATION_SUCCESS:
+            await state.clear()
+
             await message.answer(
                 text='При получении информации об очередях, в которых ты принимаешь участие, произошла ошибка: '
-                     f'{await get_message_about_status_code(status_code)}.'
+                     f'{await get_message_about_status_code(status_code)}.',
+                reply_markup=await reply_markups.get_queues_menu_keyboard()
             )
-            return
+            return sc.STOP
+
         info_in_buttons.append(info_for_button)
+
     markups, quantity_of_pages = \
         await reply_markups.parse_some_information_to_make_easy_navigation(tuple(info_in_buttons), 2)
-    now_page = 0
+
+    if old_page > quantity_of_pages - 1:
+        now_page = quantity_of_pages - 1
+    elif old_page < 0:
+        now_page = 0
+    else:
+        now_page = old_page
+
     await state.set_state(GeneralStatesGroup.queues_viewing)
+
     await state.update_data(back_step='queues_menu', markups=markups, quantity_of_pages=quantity_of_pages,
                             now_page=now_page, info_in_buttons=info_in_buttons)
+
     await message.answer(
         text=output_message,
         parse_mode='HTML',
         reply_markup=markups[now_page]
     )
+
+    return sc.OPERATION_SUCCESS
+
+
+@router.message(F.text.lower() == '📋 просмотр регистраций')
+@router.message(Command('view'))
+@decorators.user_exists_required
+@decorators.user_in_group_required
+async def cmd_view(message: Message, state: FSMContext) -> None:
+    await prepare_info_for_managing_queues(message, state)
 
 
 @router.message(F.text.lower() == '🔃 поменяться местами')
@@ -671,6 +735,56 @@ async def cmd_members(message: Message) -> None:
         text='Эта возможность будет реализована позднее.'
     )
     return
+
+
+@router.message(F.text.lower() == '🎲 развлечения')
+@router.message(Command('games'))
+@decorators.user_exists_required
+async def cmd_games(message: Message) -> None:
+    await message.answer(
+        text='Так, посмотрим-с, во что я могу с тобой поиграть...',
+        reply_markup=await reply_markups.get_games_keyboard()
+    )
+
+
+@router.message(F.text.lower() == '🧩 каптча')
+@router.message(Command('captcha_game'))
+@decorators.user_exists_required
+async def cmd_captcha_game(message: Message, state: FSMContext) -> None:
+    await state.set_state(GeneralStatesGroup.captcha_game_setup)
+
+    await state.update_data(back_step='games_menu')
+
+    await message.answer(
+        text='Выбери количество символов в каптче. Отправь мне целое число.',
+        reply_markup=await reply_markups.get_cancel_keyboard()
+    )
+
+
+@router.message(F.text.lower() == '🤡 анекдот')
+@router.message(Command('joke'))
+@decorators.user_exists_required
+async def cmd_joke(message: Message) -> None:
+    await message.answer(
+        text='Эта функциональность будет реализована в последующем.'
+    )
+
+
+@router.message(F.text.lower() == '🏆 таблицы рекордов')
+@router.message(Command('records'))
+@decorators.user_exists_required
+async def cmd_records(message: Message) -> None:
+    await message.answer(
+        text='Эта функциональность будет реализована в последующем.'
+    )
+
+
+@router.message(F.text.lower() == '🔄 а сейчас работает?')
+async def yes_it_works(message: Message) -> None:
+    await message.answer(
+        text='Да! Я снова работаю!',
+        reply_markup=await reply_markups.get_main_keyboard()
+    )
 
 
 @router.message(F.text)

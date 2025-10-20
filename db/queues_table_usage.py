@@ -1,7 +1,6 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
-from general_usage_funcs import get_day_by_num
+from utils.status_codes import StatusCode as sc
+from utils.general_usage_funcs import get_day_by_num
 import db.queues_info_table_usage as queues_info_db
 
 
@@ -107,9 +106,9 @@ async def get_info_about_user_participation_in_queues(user_id: int):
         for row in rows:
             info_about_user_participation += f'🔹 <b>{row[0]}</b> [<b>{row[1]}</b>] - '
             if row[2] == 0:
-                info_about_user_participation += '<b>вся</b> группа'
+                info_about_user_participation += '<b>вся группа</b>'
             else:
-                info_about_user_participation += f'<b>{row[2]}</b> подгруппа'
+                info_about_user_participation += f'<b>{row[2]} подгруппа</b>'
             info_about_user_participation += f' - <b>{row[4]} место</b> - <b>{await get_day_by_num(row[3])}</b>\n'
     else:
         info_about_user_participation = 'Ты не участвуешь ни в одной очереди.'
@@ -117,9 +116,11 @@ async def get_info_about_user_participation_in_queues(user_id: int):
 
 
 async def simple_get_queues_info_ids_which_user_participate(user_id: int):
-    await cur.execute('SELECT queues_info_id '
-                      'FROM queues '
-                      'WHERE user_id = ?', (user_id,))
+    await cur.execute('SELECT q.queues_info_id '
+                      'FROM queues AS q '
+                      'INNER JOIN queues_info AS q_i ON q.queues_info_id = q_i.id '
+                      'WHERE q.user_id = ? '
+                      'AND q_i.status = ?', (user_id, 'release'))
     rows = await cur.fetchall()
     if rows is None:
         return sc.DB_ERROR, None
@@ -132,7 +133,7 @@ async def simple_get_queues_info_ids_which_user_participate(user_id: int):
 
 
 async def get_information_users_participate_queue(queue_info_id: int):
-    await cur.execute('SELECT q.place, u.nick, u.username '
+    await cur.execute('SELECT q.place, u.nick, u.username, q.user_note '
                       'FROM queues AS q '
                       'INNER JOIN users AS u ON q.user_id = u.id '
                       'WHERE queues_info_id = ? '
@@ -144,9 +145,13 @@ async def get_information_users_participate_queue(queue_info_id: int):
         return sc.NO_USERS_THAT_PARTICIPATE_ENTERED_QUEUE_INFO, None
     info = ''
     for row in rows:
-        info += f'🔹 <b>{row[0]}</b>. {row[1]}'
+        info += f'🔹 <b>{row[0]}</b>. '
         if row[2] is not None:
-            info += f' - @{row[2]}'
+            info += f'<a href="{row[2]}">{row[1]}</a>'
+        else:
+            info += f'{row[1]}'
+        if row[3] is not None:
+            info += f' [{row[3]}]'
         info += '\n'
     return sc.OPERATION_SUCCESS, info
 
@@ -191,3 +196,11 @@ async def get_user_id_by_place_in_queue(place: int, queue_info_id: int):
         return sc.USER_WITH_SUCH_PLACE_IN_SUCH_QUEUE_NOT_EXIST, None
     user_id = row[0]
     return sc.OPERATION_SUCCESS, user_id
+
+
+async def update_user_note_for_queue_(user_id: int, queue_info_id: int, note):
+    await cur.execute('UPDATE queues '
+                      'SET user_note = ? '
+                      'WHERE user_id = ? '
+                      'AND queues_info_id = ?', (note, user_id, queue_info_id))
+    return await try_commit()

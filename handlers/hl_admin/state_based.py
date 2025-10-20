@@ -1,14 +1,16 @@
 from aiogram import Router, F
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from fsm.general_states import GeneralStatesGroup
-from general_usage_funcs import make_easy_navigation
-from status_codes import StatusCode as sc
-from status_codes import get_message_about_status_code
+from utils.general_usage_funcs import make_easy_navigation
+from utils.message.NotifyManager import NotifyManager
+from utils.status_codes import StatusCode as sc
+from utils.status_codes import get_message_about_status_code
 from markups import reply_markups
 import db.reports_table_usage as reportsdb
+import db.users_table_usage as usersdb
 
 
 router = Router()
@@ -184,4 +186,44 @@ async def report_checking(message: Message, state: FSMContext):
     else:
         await message.answer(
             text=f'Непредвиденный статус-код: {await get_message_about_status_code(status_code)}.',
+        )
+
+
+@router.message(GeneralStatesGroup.say_input)
+async def say_input(message: Message, state: FSMContext):
+    await state.set_state(GeneralStatesGroup.say_accepting)
+    await state.update_data(say_text=message.text)
+
+    await message.answer(
+        text=f'<b>Следующая информация будет разослана всем пользователям</b>\n\n{message.text}\n\n<b>Отправляем?</b>',
+        parse_mode='HTML',
+        reply_markup=await reply_markups.get_yes_or_no_keyboard()
+    )
+
+
+@router.message(GeneralStatesGroup.say_accepting)
+async def say_accepting(message: Message, state: FSMContext):
+    if message.text.lower() == 'да':
+        user_data = await state.get_data()
+        say_text = user_data['say_text']
+        await state.clear()
+
+        await NotifyManager.notify_all(say_text)
+
+        quantity_of_notified = await usersdb.get_quantity_of_total_users_()
+        await message.answer(
+            text=f'Количество пользователей, которые могли получить уведомление: <b>{quantity_of_notified}</b>.',
+            parse_mode='HTML',
+            reply_markup=await reply_markups.get_main_keyboard()
+        )
+    elif message.text.lower() == 'нет':
+        await state.set_state(GeneralStatesGroup.say_input)
+
+        await message.answer(
+            text='Заново введи текст для рассылки всем пользователям.',
+            reply_markup=await reply_markups.get_cancel_keyboard()
+        )
+    else:
+        await message.answer(
+            text='Я хз, что ты написал.\n\nПопробуй хомяка, то есть кнопки, потапать.'
         )

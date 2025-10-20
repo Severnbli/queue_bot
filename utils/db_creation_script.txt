@@ -76,6 +76,16 @@ CREATE TABLE queues_info (
     FOREIGN KEY (group_id) REFERENCES groups (id)
 );
 
+CREATE TABLE queues (
+    id INTEGER PRIMARY KEY,
+    queues_info_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    user_note TEXT,
+    place INTEGER NOT NULL,
+    FOREIGN KEY (queues_info_id) REFERENCES queues_info (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE
+);
+
 CREATE TABLE trades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sender_id INTEGER NOT NULL,

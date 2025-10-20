@@ -1,7 +1,7 @@
 from db.root import cur, try_commit
 from db.schedules_table_usage import get_active_schedules, del_schedules
-from general_usage_funcs import get_next_day_of_week, get_day_of_week, get_day_by_num
-from status_codes import StatusCode as sc
+from utils.general_usage_funcs import get_next_day_of_week, get_day_of_week, get_day_by_num
+from utils.status_codes import StatusCode as sc
 import db.queues_table_usage as queuesdb
 import db.members_table_usage as membersdb
 
@@ -22,29 +22,47 @@ async def prerelease_queues_from_active_schedules():
         subgroup = schedule[3]
         if subgroup is None:
             return sc.DB_VALUE_ERROR, None
-        info_to_notify.append((group_id, subgroup, subject, lesson_type))
+        day_of_week = schedule[4]
+        if day_of_week is None:
+            return sc.DB_VALUE_ERROR, None
+        info_to_notify.append((group_id, subgroup, subject, lesson_type, await get_day_by_num(day_of_week)))
         await cur.execute('INSERT INTO queues_info '
                           '(group_id, subject, lesson_type, subgroup, status, day_of_week) '
                           'VALUES (?, ?, ?, ?, ?, ?)',
-                          (group_id, subject, lesson_type, subgroup, 'prerelease', await get_next_day_of_week()))
+                          (group_id, subject, lesson_type, subgroup, 'prerelease', day_of_week))
         if not await try_commit():
             return sc.DB_ERROR, None
     return sc.OPERATION_SUCCESS, info_to_notify
 
 
 async def release_queues():
-    await cur.execute('SELECT group_id, subgroup, subject, lesson_type '
+    await cur.execute('SELECT group_id, subgroup, subject, lesson_type, day_of_week '
                       "FROM queues_info WHERE status = 'prerelease'")
+
     info_about_users = await cur.fetchall()
+
     if info_about_users is None:
         return sc.NO_QUEUES_IN_PRERELEASE, None
+
     await cur.execute('UPDATE queues_info '
                       "SET status = 'release' "
-                      "WHERE status = 'prerelease'"
-                      "AND day_of_week = ?", (await get_next_day_of_week(),))
+                      "WHERE status = 'prerelease'")
+
     if not await try_commit():
         return sc.DB_ERROR, None
+
     return sc.OPERATION_SUCCESS, info_about_users
+
+
+async def simple_release_queues() -> int:
+    await cur.execute('UPDATE queues_info '
+                      "SET status = 'release' "
+                      "WHERE status = 'prerelease'")
+
+    if not await try_commit():
+        return sc.DB_ERROR
+
+    return sc.OPERATION_SUCCESS
 
 
 async def obsolete_queues_():
@@ -180,3 +198,31 @@ async def simple_get_status_of_queue_info(queue_info_id: int):
         return sc.QUEUES_INFO_NOT_EXIST, None
     queue_info_status = row[0]
     return sc.OPERATION_SUCCESS, queue_info_status
+
+
+async def get_release_queues_info():
+    await cur.execute('SELECT group_id, subject, lesson_type, subgroup, day_of_week '
+                      'FROM queues_info '
+                      'WHERE status = ? '
+                      'AND day_of_week = ?', ('release', await get_next_day_of_week()))
+
+    rows = await cur.fetchall()
+
+    if len(rows) == 0:
+        return sc.NO_QUEUES_IN_RELEASE, None
+
+    return sc.OPERATION_SUCCESS, rows
+
+
+async def get_prerelease_queues_info():
+    await cur.execute('SELECT group_id, subject, lesson_type, subgroup, day_of_week '
+                      'FROM queues_info '
+                      'WHERE status = ?'
+                      'AND day_of_week = ?', ('prerelease', await get_next_day_of_week()))
+
+    rows = await cur.fetchall()
+
+    if len(rows) == 0:
+        return sc.NO_QUEUES_IN_PRERELEASE, None
+
+    return sc.OPERATION_SUCCESS, rows

@@ -1,8 +1,8 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
+from utils.status_codes import StatusCode as sc
 import db.users_table_usage as usersdb
 import db.members_table_usage as membersdb
-from general_usage_funcs import get_random_str
+from utils.general_usage_funcs import get_random_str
 
 
 async def gen_key_(length: int) -> str:
@@ -126,9 +126,11 @@ async def get_group_info(group_id = None, group_name = None):
             leaders_info += '<b>Заместитель</b>'
         else:
             leaders_info += '<b>Хз кто</b>'
-        leaders_info += f': {leader["nick"]}'
+        leaders_info += ': '
         if leader["username"] is not None:
-            leaders_info += f' (@{leader["username"]})'
+            leaders_info += f'<a href="{leader["username"]}">{leader["nick"]}</a>'
+        else:
+            leaders_info += f'{leader["nick"]}'
         if leader is not leaders[-1]:
             leaders_info += '\n'
     group_info = (f'🔹 <b>Название</b>: {group_name}\n{leaders_info}'

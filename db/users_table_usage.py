@@ -1,9 +1,9 @@
 from db.root import cur, try_commit
-from status_codes import StatusCode as sc
+from utils.status_codes import StatusCode as sc
 import db.roles_table_usage as rolesdb
 import db.groups_table_usage as groupsdb
 import db.members_table_usage as membersdb
-from general_usage_funcs import get_subgroup_name, notify_user_
+from utils.general_usage_funcs import get_subgroup_name
 
 async def is_user_exist_(user_id: int) -> bool:
     await cur.execute('''SELECT COUNT(*) FROM users WHERE id = ?''', (user_id,))
@@ -44,9 +44,13 @@ async def get_all_nicks():
 
 
 async def reg_user_(user_id: int, nick: str, username: str):
+    if username is not None:
+        username = f'https://t.me/{username}'
+
     if await is_user_exist_(user_id):
         return sc.USER_EXIST
     await cur.execute('''INSERT INTO users (id, nick, username) VALUES (?, ?, ?)''', (user_id, nick, username))
+
     if not await try_commit():
         return sc.DB_ERROR
     return sc.OPERATION_SUCCESS
@@ -95,13 +99,16 @@ async def get_user_info(user_id: int):
         is_news = 'присутствует'
     ref = 'отсутствует'
     if row[2] is not None:
-        ref = f'@{row[2]}'
+        ref = f'{row[2]}'
     info_about_user = (f'🔹 <b>Ник</b>: {row[1]}\n🔹 <b>Ссылка</b>: {ref}\n🔹 <b>Роль</b>: {role_description}'
                        f'\n🔹 <b>Группа</b>: {group_name}\n🔹 <b>Подписка на обновления очередей</b>: {is_news}')
     return sc.OPERATION_SUCCESS, info_about_user
 
 
 async def update_link_(user_id: int, username: str):
+    if username is not None:
+        username = f'https://t.me/{username}'
+
     if not await is_user_exist_(user_id):
         return sc.USER_NOT_EXIST
     await cur.execute('''UPDATE users SET username = ? WHERE id = ?''', (username, user_id))
@@ -120,10 +127,14 @@ async def get_admins_ids() -> tuple:
     return tuple(admins_ids)
 
 
-async def notify_admins_(text: str) -> None:
-    admins_ids = await get_admins_ids()
-    for admin_id in admins_ids:
-        await notify_user_(admin_id, text)
+async def get_all_ids_() -> tuple:
+    await cur.execute('SELECT id FROM users')
+    rows = await cur.fetchall()
+    ids = []
+    if rows is not None:
+        for row in rows:
+           ids.append(row[0])
+    return tuple(ids)
 
 
 async def turn_on_off_subscription_(user_id: int):
@@ -164,6 +175,24 @@ async def get_info_about_status_of_news(user_id: int):
     return sc.OPERATION_SUCCESS, info_about_status_of_news
 
 
+async def simple_get_status_of_news(user_id: int):
+    if not await is_user_exist_(user_id):
+        return sc.USER_NOT_EXIST, None
+    await cur.execute('SELECT is_news '
+                      'FROM users '
+                      'WHERE id = ?', (user_id,))
+    row = await cur.fetchone()
+    if row is None:
+        return sc.DB_ERROR, None
+    is_news = row[0]
+
+    if is_news == 'true':
+        is_news = True
+    else:
+        is_news = False
+    return sc.OPERATION_SUCCESS, is_news
+
+
 async def is_user_admin_(user_id: int) -> bool:
     await cur.execute('SELECT role_name FROM users WHERE id = ?', (user_id,))
     row = await cur.fetchone()
@@ -172,3 +201,26 @@ async def is_user_admin_(user_id: int) -> bool:
     if row[0] == 'admin':
         return True
     return False
+
+
+async def get_quantity_of_total_users_():
+    await cur.execute('SELECT COUNT(*) FROM users')
+
+    row = await cur.fetchone()
+
+    if row is None:
+        return 0
+    else:
+        return int(row[0])
+
+
+async def get_quantity_of_admins_():
+    await cur.execute('SELECT COUNT(*) FROM users '
+                      'WHERE role_name = ?', ('admin',))
+
+    row = await cur.fetchone()
+
+    if row is None:
+        return 0
+    else:
+        return int(row[0])
