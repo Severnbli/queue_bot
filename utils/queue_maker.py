@@ -121,10 +121,10 @@ async def notify_members_about_queues(group_id: int, subgroup_id, text: str, del
 
 
 async def timer():
-    time_to_prerelease = '18:0:0'
-    time_to_remind = '18:50:0'
-    time_to_release = '19:0:0'
-    time_to_notify_about_release = '19:5:0'
+    time_to_prerelease = '11:37:0'
+    time_to_remind = '12:00:0'
+    time_to_release = '12:35:0'
+    time_to_notify_about_release = '12:40:0'
     time_to_obsolete = '21:0:0'
     time_range: int = 5
 

@@ -12,6 +12,13 @@ async def add_schedule(
         subgroup: int,
         is_in_schedule: str
 ):
+    subject = subject if subject is not None else "UNKNOWN"
+    lesson_type = lesson_type if lesson_type is not None else "UNKNOWN"
+    day_of_week = day_of_week if day_of_week is not None else 0
+    weeks_of_month = weeks_of_month if weeks_of_month is not None else ()
+    subgroup = subgroup if subgroup is not None else 0
+    is_in_schedule = is_in_schedule if is_in_schedule is not None else "false"
+
     weeks_of_month = tuple(map(str, weeks_of_month))
     parsed_wom = ' '.join(weeks_of_month)
     await cur.execute('SELECT COUNT(*) '

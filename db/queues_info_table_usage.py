@@ -203,7 +203,8 @@ async def simple_get_status_of_queue_info(queue_info_id: int):
 async def get_release_queues_info():
     await cur.execute('SELECT group_id, subject, lesson_type, subgroup, day_of_week '
                       'FROM queues_info '
-                      'WHERE status = ?', ('release',))
+                      'WHERE status = ? '
+                      'AND day_of_week = ?', ('release', await get_next_day_of_week()))
 
     rows = await cur.fetchall()
 
@@ -216,7 +217,8 @@ async def get_release_queues_info():
 async def get_prerelease_queues_info():
     await cur.execute('SELECT group_id, subject, lesson_type, subgroup, day_of_week '
                       'FROM queues_info '
-                      'WHERE status = ?', ('prerelease',))
+                      'WHERE status = ?'
+                      'AND day_of_week = ?', ('prerelease', await get_next_day_of_week()))
 
     rows = await cur.fetchall()
 
