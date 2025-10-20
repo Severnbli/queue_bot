@@ -173,6 +173,6 @@ configs.py
 .idea/queueBot_v2.0.iml
 .idea/sqldialects.xml
 .idea/vcs.xml
-database_queue_bot
-database_queue_bot.sqlite
-db/database_queue_bot
+
+# DB
+*.sqlite
