@@ -11,3 +11,5 @@ As db engine was selected SQlite. You can find script to make it in file db_crea
 To make this bot work you need create configs.py with your token in root directory. Example (in configs.py): token = "babibob"  
 
 # Have a nice day!
+
+_License: MIT_
